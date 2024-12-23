@@ -1,0 +1,45 @@
+# Exclude build and output directories
+/build/
+/Debug/
+/Release/
+
+# Simplicity Studio-specific files
+.simproject
+.settings/
+.metadata/
+.snap/
+.cache/
+.ipcache
+
+# Eclipse CDT project files (used by Simplicity Studio)
+.cproject
+.project
+
+# Temporary files and logs
+*.log
+*.tmp
+*.bak
+*.swp
+*.swo
+
+# Object files and binary outputs
+*.o
+*.d
+*.elf
+*.bin
+*.hex
+*.map
+
+# Dependency files
+.dep/
+*.d
+
+# Intermediate files for FreeRTOS or libraries
+*.a
+
+# IDE configuration
+*.launch
+
+# Generated files (e.g., autogen by Simplicity Studio or SDK tools)
+autogen/
+generated/
