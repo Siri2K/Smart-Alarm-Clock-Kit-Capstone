@@ -1,0 +1,48 @@
+# General build and output directories
+/build/
+build*/
+
+# IDE-specific files
+.vscode/
+*.launch
+*.swp
+*.swo
+
+# Configuration and settings files
+.settings/
+.metadata/
+.snap/
+.cache/
+.ipcache
+
+# Temporary files and logs
+*.log
+*.tmp
+*.bak
+
+# Object files and binary outputs
+*.o
+*.d
+*.elf
+*.bin
+*.hex
+*.map
+*.a
+
+# Dependency and intermediate files
+*.d
+.dep/
+autogen/
+generated/
+
+# SDK and tool-specific files
+sdkconfig
+sdkconfig.old
+
+# Simplicity Studio and Eclipse CDT project files
+.simproject
+.cproject
+.project
+
+# Miscellaneous
+*.DS_Store
