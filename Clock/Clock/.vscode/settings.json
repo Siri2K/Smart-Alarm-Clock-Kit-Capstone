@@ -4,5 +4,13 @@
     "idf.openOcdConfigs": [
         "board/esp32-wrover-kit-3.3v.cfg"
     ],
-    "idf.toolsPathWin": "C:\\Users\\Srira\\.espressif"
+    "idf.toolsPathWin": "C:\\Users\\Srira\\.espressif",
+    "files.associations": {
+        "*.asm": "mips",
+        "sdkconfig": "cpp",
+        "array": "c",
+        "string": "c",
+        "string_view": "c",
+        "span": "c"
+    }
 }
