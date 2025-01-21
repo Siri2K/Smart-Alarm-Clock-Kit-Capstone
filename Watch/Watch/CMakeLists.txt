@@ -3,4 +3,17 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 
 project(Watch)
 
-target_sources(app PRIVATE src/main.c)
+# Automatically add all .c files in Component and subdirectories
+file(GLOB COMPONENT_SOURCES src/Component/**/*.c)
+
+# Target all Source Files
+target_sources(app PRIVATE 
+    src/main.c
+    ${COMPONENT_SOURCES} # Add all component source files
+)
+
+# include Component Folder + Subdirectories
+target_include_directories(app PRIVATE
+    src
+    src/Component
+)
