@@ -1,6 +1,6 @@
-#include "slide_switch.h"
+#include "SlideSwitch.h"
 
-void initializeSlideSwitch(slide_switch *slideSwitch){
+void initializeSlideSwitch(slide_switch_t *slideSwitch){
     // Configure Slide Switch
     ESP_ERROR_CHECK(configureSlideSwitch(slideSwitch));
 
@@ -12,7 +12,7 @@ void initializeSlideSwitch(slide_switch *slideSwitch){
 
 }
 
-esp_err_t configureSlideSwitch(slide_switch *slideSwitch){
+esp_err_t configureSlideSwitch(slide_switch_t *slideSwitch){
     // Setup Pins used for Slide Switch
     slideSwitch->sliderConfig.pin_bit_mask = 
     (1ULL << TIME_MODE_SWITCH) | 
@@ -32,31 +32,41 @@ esp_err_t configureSlideSwitch(slide_switch *slideSwitch){
 }
 
 volatile bool *getClockState(){
-    return !gpio_get_level(CLOCK_MODE_SWITCH);
+    bool *state = (bool*)malloc(sizeof(bool));
+    *state = !!(gpio_get_level(CLOCK_MODE_SWITCH));
+    return state;
 }
 
 volatile bool *getAlarmState(){
-    return !gpio_get_level(ALARM_MODE_SWITCH);
+    bool *state = (bool*)malloc(sizeof(bool));
+    *state = !!(gpio_get_level(ALARM_MODE_SWITCH));
+    return state;
 }
 
 volatile bool *getTimeState(){
-    return !gpio_get_level(TIME_MODE_SWITCH);
+    bool *state = (bool*)malloc(sizeof(bool));
+    *state = !!(gpio_get_level(TIME_MODE_SWITCH));
+    return state;
 }
 
-volatile uint8_t *readMode(bool clockOn, bool alarmOn, bool timeOn){
+volatile clock_mode_t *readMode(bool clockOn, bool alarmOn, bool timeOn){
+    clock_mode_t *clock_mode = (clock_mode_t*)malloc(sizeof(clock_mode_t));
+    *clock_mode = ERROR;
+
     // Find Mode
-    if(clockOn ^ alarmOn ^ timeOn){ // Check if only 1 mode is on
-        if(clockOn){
-            return CLOCK;
+    if(!clockOn ^ !alarmOn ^ !timeOn){ // Check if only 1 mode is on
+        if(!clockOn){
+            *clock_mode = CLOCK;
         }
-        if (alarmOn){
-            return ALARM;
+        if (!alarmOn){
+            *clock_mode = ALARM;
         }
-        if(timeOn){
-            return TIME;
+        if(!timeOn){
+            *clock_mode = TIME;
         }
     }
     else{
-        return -1;
+        *clock_mode = ERROR;
     }
+    return clock_mode;
 }
