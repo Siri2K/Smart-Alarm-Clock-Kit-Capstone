@@ -10,7 +10,9 @@
         "*.asm": "mips",
         "rtc.h": "c",
         "lcd.h": "c",
-        "event_groups.h": "c"
+        "event_groups.h": "c",
+        "realtimeclock.h": "c",
+        "chrono": "c"
     },
     "idf.flashType": "UART",
     "idf.portWin": "COM3"

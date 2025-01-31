@@ -27,9 +27,9 @@ typedef struct slide_switch_t {
     gpio_config_t sliderConfig;
     
     // Task
-    volatile bool *(onClockMode);
-    volatile bool *(onTimeMode);
-    volatile bool *(onAlarmMode);
+    volatile bool *(*onClockMode)(void);
+    volatile bool *(*onTimeMode)(void);
+    volatile bool *(*onAlarmMode)(void);
     volatile clock_mode_t *(*mode)(bool,bool,bool);
     
 } slide_switch_t;
