@@ -1,18 +1,25 @@
-#include "button.h"
+#include "Button.h"
 
-void initializeButtons(button_t **buttons){
+int64_t buttonPressedStartTime = 0;
+
+void initializeButtons(button_t *buttons){
     // Initialize Button Pointer
-    *buttons = (button_t *)malloc(BUTTON_COUNT*sizeof(button_t)); // 3 buttons : UP,DOWN,SELECT
+    buttons = (button_t *)malloc(BUTTON_COUNT*sizeof(button_t)); // 3 buttons : UP,DOWN,SELECT
 
     // Configure Buttons
-    ESP_ERROR_CHECK(configureSlideSwitch((*buttons)));
+    ESP_ERROR_CHECK(configureButtons((buttons)));
 
     // Store Functions into struct
     int i;
     for(i = 0; i<BUTTON_COUNT;i++){
-        (*buttons)[i].pressed = getPressState;
-        (*buttons)[i].pressDuration = calculatePressDuration;
+        buttons[i].pressed = getPressState;
+        buttons[i].pressDuration = calculatePressDuration;
     }
+
+    // Store pin Numbers
+    buttons[0].gpioPin = UP_BUTTON; // Up Button
+    buttons[1].gpioPin = DOWN_BUTTON; // Down Button
+    buttons[2].gpioPin = SELECT_BUTTON; // Select Button
 }
 
 esp_err_t configureButtons(button_t *buttons){
@@ -43,20 +50,24 @@ esp_err_t configureButtons(button_t *buttons){
     return status;
 }
 
-volatile bool *getPressState(gpio_num_t *buttonPin){
-    return !gpio_get_level(buttonPin);
+volatile bool *getPressState(gpio_num_t buttonPin){
+    bool *state = (bool*)malloc(sizeof(bool));
+    *state = !!(gpio_get_level(buttonPin));
+    return state;
 }
 
-volatile int64_t *calculatePressDuration(gpio_num_t *buttonPin){
+volatile int64_t *calculatePressDuration(gpio_num_t buttonPin){
     // Lock task until Button is released
-    int64_t duration;
-    while(getPressState(buttonPin)){
+    int64_t* duration = (int64_t*)malloc(sizeof(int64_t));
+    *duration = 0;
+
+    while(!getPressState(buttonPin)){
         if(buttonPressedStartTime == 0){ // Notify that button has been pressed
             buttonPressedStartTime = esp_timer_get_time(); // Record Current Time
         }
         else{
             // Update Duration
-            duration = esp_timer_get_time() - buttonPressedStartTime;
+            *duration = esp_timer_get_time() - buttonPressedStartTime;
         }
     }
     

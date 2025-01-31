@@ -1,10 +1,9 @@
 #ifndef BUZZER_H
 #define BUZZER_H
 
-/* Headers */ 
-#include "Pins/pins.h"
 
 /* Drivers */
+#include <driver/gpio.h>
 #include <driver/ledc.h>
 
 /* C Library */
@@ -12,12 +11,15 @@
 #include <stdbool.h>
 
 /* Definitions */
+// PWM
 #define BUZZER_TIMER  LEDC_TIMER_0 // TIMER
 #define BUZZER_MODE   LEDC_LOW_SPEED_MODE // Speed Mode
 #define BUZZER_CHANNEL LEDC_CHANNEL_0 // Timer Channel
 #define BUZZER_DUTY_RES  LEDC_TIMER_10_BIT // 11-Bit Duty Resolution
 #define BUZZER_FREQUENCY (2048) // Frequency
 
+// Pin
+#define BUZZER GPIO_NUM_14
 
 /* Global Struct or Enums*/
 typedef enum buzzer_power_t{
@@ -39,12 +41,12 @@ typedef struct buzzer_t {
 } buzzer_t;
 
 /* Functions */
-void initializeBuzzer(buzzer_t *buzzer);
+extern void initializeBuzzer(buzzer_t *buzzer);
 
-esp_err_t configureBuzzerTimer(buzzer_t *buzzer);
+extern esp_err_t configureBuzzerTimer(buzzer_t *buzzer);
 
-esp_err_t configureBuzzerChannel(buzzer_t *buzzer);
+extern esp_err_t configureBuzzerChannel(buzzer_t *buzzer);
 
-void *setPowerOn(ledc_mode_t mode,ledc_channel_t channel, buzzer_power_t buzzerPower);
+extern void *setPowerOn(ledc_mode_t mode,ledc_channel_t channel, buzzer_power_t buzzerPower);
 
 #endif

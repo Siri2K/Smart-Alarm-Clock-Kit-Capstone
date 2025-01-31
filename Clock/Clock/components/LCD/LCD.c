@@ -1,4 +1,4 @@
-#include "lcd.h"
+#include "LCD.h"
 
 void initializeLCD(lcd_t *lcd){
     // Initialize SPI
@@ -10,10 +10,10 @@ void initializeLCD(lcd_t *lcd){
     lcd->send = LCDSend;
 
     // Initialize Display
-    initializeDisplay();
+    initializeDisplay(lcd);
 }
 
-void initializeDisplay(){
+void initializeDisplay(lcd_t *lcd){
     // Reset the LCD
     gpio_set_level(LCD_RESET_PIN, 0);
     vTaskDelay(pdMS_TO_TICKS(100));
@@ -56,7 +56,10 @@ esp_err_t configureLCDDeviceInterface(lcd_t *lcd){
     return spi_bus_add_device(SPI2_HOST, &(lcd->lcdSPIDeviceInterfaceConfig), &(lcd->lcdSPIDeviceHandle));
 }
 
-void *LCDSend(lcd_t *lcd, lcd_mode mode, uint8_t* value){
+void *LCDSend(void *lcdPtr, lcd_mode mode, uint8_t value){
+    // Convert to LCD
+    lcd_t* lcd = (lcd_t*)lcdPtr;
+    
     // Set A0 Pin
     switch (mode)
     {
@@ -72,6 +75,7 @@ void *LCDSend(lcd_t *lcd, lcd_mode mode, uint8_t* value){
 
     // Transmit value
     lcd->lcdTransaction.length = 8; //  Lenght 
-    lcd->lcdTransaction.tx_buffer = value; // Transmitted Buffer
+    lcd->lcdTransaction.tx_buffer = (void*)(&value); // Transmitted Buffer
     spi_device_polling_transmit(lcd->lcdSPIDeviceHandle, &(lcd->lcdTransaction)); // Transmit Transaction
+    return NULL;
 }
