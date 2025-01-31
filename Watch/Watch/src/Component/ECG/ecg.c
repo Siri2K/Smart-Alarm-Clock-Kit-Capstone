@@ -10,7 +10,7 @@ int connectToECG(){
     return status;
 }
 
-int intializeECG(){
+int initializeECG(){
     int status = 1;
     
     // Reset the device

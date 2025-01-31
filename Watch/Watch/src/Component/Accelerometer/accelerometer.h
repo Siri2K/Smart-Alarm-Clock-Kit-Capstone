@@ -9,6 +9,18 @@
 #include <zephyr/drivers/gpio.h>
 
 /* Defnitions */
+// Accelerometer Registers
+#define ACCEL_ID_REG 0x13
+#define ACCEL_SENS_CONFIG_1 0x15 
+
+#define ACCEL_OUTPUT_X_LSB 0x04 
+#define ACCEL_OUTPUT_Y_LSB 0x06 
+#define ACCEL_OUTPUT_Z_LSB 0x08  
+#define ACCEL_OUTPUT_X_MSB 0x05
+#define ACCEL_OUTPUT_Y_MSB 0x07
+#define ACCEL_OUTPUT_Z_MSB 0x08 
+
+// Accelerometer Pins
 #define ACCEL_ID 0x86
 #define ACCEL_NODE DT_NODELABEL(spi0)
 
@@ -16,20 +28,6 @@
 #define CS_PIN 16
 
 // Global variables
-typedef enum accelerometer_registers_t{
-    // ID
-    ACCEL_ID_REG = 0x13,
-
-    // Outputs
-    ACCEL_OUTPUT_X_LSB = 0x04,  ACCEL_OUTPUT_X_MSB = 0x05,
-    ACCEL_OUTPUT_Y_LSB = 0x06,  ACCEL_OUTPUT_Y_MSB = 0x07, 
-    ACCEL_OUTPUT_Z_LSB = 0x08,  ACCEL_OUTPUT_Z_MSB = 0x08, 
-
-    // Configuration
-    ACCEL_SENS_CONFIG_1 = 0x15 
-
-}accelerometer_registers_t;
-
 typedef struct accelerometer_data_t{
     uint8_t id;
     int16_t x,y,z;

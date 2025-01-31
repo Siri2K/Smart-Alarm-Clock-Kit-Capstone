@@ -1,34 +1,33 @@
 #include "battery.h"
 
-const struct adc_dt_spec batteryChannel = ADC_DT_SPEC_GET(DT_PATH(zephyr_user));
-int16_t batteryBuffer;
-struct adc_sequence batterySequence;
+const struct device *batteryDevice = DEVICE_DT_GET(BATTERY_NODE);
+
+struct adc_channel_cfg batteryChannel = {
+    .channel_id = ADC_CHANNEL,
+    .reference = ADC_REFERENCE,
+    .gain = ADC_GAIN,
+    .acquisition_time = ADC_ACQ_TIME_DEFAULT,
+    
+    #ifdef CONFIG_ADC_NRFX_SAADC
+        .input_positive = ADC_PORT
+    #endif
+
+};
+
+struct adc_sequence batterySequence = {
+    .channels = BIT(ADC_CHANNEL),
+    .buffer = batteryBuffer,
+    .buffer_size = sizeof(batteryBuffer),
+    .resolution = ADC_RESOLUTION
+};
 
 int intializeBattery(){
     // Return value
     int status = 1;
-    
-    // Configure battery
-    configureBattery();
 
-    // Setup ADC
-    status &= device_is_ready(&batteryChannel);
-    status &= adc_channel_setup_dt(&batteryChannel);
-
-    // Configure ADC
-    configureBattery();
-
-    // Initialize Sequence
-    status &= adc_sequence_init_dt(&batteryChannel, &batterySequence);
-
-    return status;
-}
-
-void configureBattery(){
-    // Configure Sequence
-    batterySequence.buffer = &batteryBuffer;
-    batterySequence.buffer_size = sizeof(batteryBuffer);
-    batterySequence.calibrate = true;
+    // Configure Battery ADC
+    status &= device_is_ready(batteryDevice); // Configure Device
+    status &= adc_channel_setup(batteryDevice,&batteryChannel); // Configure Channel
 }
 
 battery_charge_level_t readbatteryCharge(){
