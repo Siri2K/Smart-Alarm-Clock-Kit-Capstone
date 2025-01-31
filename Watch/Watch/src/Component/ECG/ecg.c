@@ -13,6 +13,9 @@ int connectToECG(){
 int initializeECG(){
     int status = 1;
     
+    // Connect to Device
+    status &= connectToECG();
+
     // Reset the device
     status &= (i2c_reg_write_byte(ECGDev,ECG_WRITE_ADDRESS, ECG_SYSTEM_CONTROL, 0x01))? 1:0; // PWR_RDY = 1
     k_sleep(K_MSEC(1)); // 1ms delay for reset
