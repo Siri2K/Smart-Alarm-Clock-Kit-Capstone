@@ -13,8 +13,8 @@
 #define ALL_PARTS_INITIALIZED BIT(0)
 #define BUTTON_SHORT_PRESSED BIT(1)
 #define BUTTON_LONG_PRESSED BIT(2)
-
-#define ECG_DATA_READ BIT(4)
+#define ECG_DATA_READ BIT(3)
+#define ACCELEROMETER_READ BIT(4)
 
 /* Global Variables */
 // Data
@@ -27,18 +27,21 @@ K_THREAD_STACK_DEFINE(intialize_all_parts_stack, STACK_SIZE);
 K_THREAD_STACK_DEFINE(button_control_stack, STACK_SIZE);
 K_THREAD_STACK_DEFINE(display_battery_levels_stack, STACK_SIZE);
 K_THREAD_STACK_DEFINE(read_ecg_stack, STACK_SIZE);
+K_THREAD_STACK_DEFINE(read_accelerometer_data_stack, STACK_SIZE);
 
 struct k_thread *control_task_data;
 struct k_thread *intialize_all_parts_data;
 struct k_thread *button_control_data;
 struct k_thread *display_battery_levels_data;
 struct k_thread *read_ecg_data;
+struct k_thread *read_accelerometer_data_data;
 
 k_tid_t control_task_id;
 k_tid_t intialize_all_parts_id;
 k_tid_t button_control_id;
 k_tid_t display_battery_levels_id;
 k_tid_t read_ecg_id;
+k_tid_t read_accelerometer_data_id;
 
 // Event group for synchronization
 K_EVENT_DEFINE(task_events);
@@ -52,6 +55,7 @@ void intializeAllParts();
 void buttonControl();
 void displayBatteryLevels();
 void readECG();
+void readAccelerometerData();
 
 // Main
 int main(void)
@@ -123,6 +127,11 @@ void controlTask(){
         read_ecg_stack,
         STACK_SIZE,
         (k_thread_entry_t)readECG,
+    read_accelerometer_data_id = k_thread_create(
+        read_accelerometer_data_data,
+        read_accelerometer_data_stack,
+        STACK_SIZE,
+        (k_thread_entry_t)readAccelerometerData,
         NULL,
         NULL,
         NULL,
@@ -139,6 +148,7 @@ void intializeAllParts(){
     initializeAccelerometer(accelerometer);
     initializeECG();
     k_event_post(&task_events, ALL_PARTS_INITIALIZED);
+    k_thread_abort(&intialize_all_parts_id);
 }
 
 void buttonControl(){
@@ -193,4 +203,11 @@ void readECG(){
     k_event_clear(&task_events, ECG_DATA_READ);
     *bpm = calculateBPM(getFIFODataSamples()); // Get BPM Data
     k_event_post(&task_events, ECG_DATA_READ);
+}
+void readAccelerometerData(){
+    while(true){
+        k_event_clear(&task_events,ACCELEROMETER_READ);
+        readXYZ(accelerometer);
+        k_event_post(&task_events, ACCELEROMETER_READ);
+    }
 }
