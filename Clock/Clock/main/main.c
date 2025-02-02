@@ -20,6 +20,8 @@
 
 // Sensors
 #define READ_TIME_BIT (EventBits_t)(1<<4) // Slide_Switch on Alarm Mode
+#define BUZZER_ON (EventBits_t)(1<<5) // Buzzer Activates
+#define BUZZER_SNOOZED (EventBits_t)(1<<6) // Buzzer Activates
 
 /* Global Structures */
 typedef struct parts_t{
@@ -138,7 +140,7 @@ void createAllHWTask(void *pvParameters){
     initializeRTC(part->rtc);
     initializeSlideSwitch(part->slide_switch);
     initializeButtons(part->button);
-    // initializeBuzzer(parts->buzzer);
+    initializeBuzzer(parts->buzzer);
 
     // Initialize Time
     part->currentTime = (uint8_t*) malloc(4*sizeof(uint8_t));
@@ -197,18 +199,30 @@ void changeCurrentTime(void *pvParameters){
         synchronizeWait(HW_INITIALIZE| TIME_MODE_BIT); // Update Clock Time
         if(button->gpioPin == SELECT_BUTTON && !button->pressed(button->gpioPin)){
             while(!button->pressed(button->gpioPin)); // Lock Task until Button is released
+            timeIndex = (timeIndex == 4) ? 0: timeIndex+1;
             timeIndex++;
         }
         else if(button->gpioPin == UP_BUTTON && !button->pressed(button->gpioPin)){
-            parts->currentTime[timeIndex]++;
+            if(timeIndex == 3){
+                part->currentTime[timeIndex] = (part->currentTime[timeIndex] == 1) ? 0 : 1; // Lock to AM or PM
+            }
+            else if(timeIndex == 0){
+                part->currentTime[timeIndex] = (part->currentTime[timeIndex] == 12) ? 1 : part->currentTime[timeIndex] + 1; // Allow values from 1 to 12 for hours
+            }
+            else{
+                part->currentTime[timeIndex] = (part->currentTime[timeIndex] == 59) ? 0 : part->currentTime[timeIndex] + 1; // Allow values from 0 to 59 for minutes or seconds
+            }
         }
         else if(button->gpioPin == DOWN_BUTTON && !button->pressed(button->gpioPin)){
-            parts->currentTime[timeIndex]--;
-        }
-
-        // Reset index
-        if(timeIndex >=3){
-            timeIndex = 0;
+            if(timeIndex == 3){
+                part->currentTime[timeIndex] = (part->currentTime[timeIndex] == 0) ? 1 : 0; // Lock to AM or PM
+            }
+            else if(timeIndex == 0){
+                part->currentTime[timeIndex] = (part->currentTime[timeIndex] == 0) ? 12 : part->currentTime[timeIndex] - 1; // Allow values from 1 to 12 for hours
+            }
+            else{
+                part->currentTime[timeIndex] = (part->currentTime[timeIndex] == 0) ? 59 : part->currentTime[timeIndex] - 1; // Allow values from 0 to 59 for minutes or seconds
+            }
         }
         vTaskDelay(pdMS_TO_TICKS(20)); // Update every 20ms
     }
@@ -219,28 +233,40 @@ void changeAlarmTime(void *pvParameters){
     parts_t *part = (parts_t*)pvParameters;
     button_t *button = part->button;
     uint8_t timeIndex = 0;
-    uint8_t *alarmTime = (uint8_t*)malloc(3*sizeof(uint8_t));
     
     // Change Time
-    while(true){
+     while(true){
         synchronizeWait(HW_INITIALIZE| ALARM_MODE_BIT); // Update Clock Time
         if(button->gpioPin == SELECT_BUTTON && !button->pressed(button->gpioPin)){
             while(!button->pressed(button->gpioPin)); // Lock Task until Button is released
+            timeIndex = (timeIndex == 4) ? 0: timeIndex+1;
             timeIndex++;
         }
         else if(button->gpioPin == UP_BUTTON && !button->pressed(button->gpioPin)){
-            alarmTime[timeIndex]++;
+            if(timeIndex == 3){
+                part->alarmTime[timeIndex] = (part->alarmTime[timeIndex] == 1) ? 0 : 1; // Lock to AM or PM
+            }
+            else if(timeIndex == 0){
+                part->alarmTime[timeIndex] = (part->alarmTime[timeIndex] == 12) ? 1 : part->alarmTime[timeIndex] + 1; // Allow values from 1 to 12 for hours
+            }
+            else{
+                part->alarmTime[timeIndex] = (part->alarmTime[timeIndex] == 59) ? 0 : part->alarmTime[timeIndex] + 1; // Allow values from 0 to 59 for minutes or seconds
+            }
         }
         else if(button->gpioPin == DOWN_BUTTON && !button->pressed(button->gpioPin)){
-            alarmTime[timeIndex]--;
-        }
-
-        // Reset index
-        if(timeIndex >=3){
-            timeIndex = 0;
+            if(timeIndex == 3){
+                part->alarmTime[timeIndex] = (part->alarmTime[timeIndex] == 0) ? 1 : 0; // Lock to AM or PM
+            }
+            else if(timeIndex == 0){
+                part->alarmTime[timeIndex] = (part->alarmTime[timeIndex] == 0) ? 12 : part->alarmTime[timeIndex] - 1; // Allow values from 1 to 12 for hours
+            }
+            else{
+                part->alarmTime[timeIndex] = (part->alarmTime[timeIndex] == 0) ? 59 : part->alarmTime[timeIndex] - 1; // Allow values from 0 to 59 for minutes or seconds
+            }
         }
         vTaskDelay(pdMS_TO_TICKS(20)); // Update every 20ms
     }
+    
 }
 
 void readClockTime(void *pvParameters){
@@ -259,7 +285,47 @@ void readClockTime(void *pvParameters){
         (bool*)(&part->currentTime[3])
     );
     synchronizeSet(READ_TIME_BIT);
-    synchronizeWait(HW_INITIALIZE| CLOCK_MODE_BIT);
+    
+    // Setup Alarm
+    bool triggerAlarm = (part->currentTime[0] == part->alarmTime[0]) & (part->currentTime[3] == part->alarmTime[3]); // Check for Hour and AM & PM
+    triggerAlarm &= (part->currentTime[1] == part->alarmTime[1]) || (part->currentTime[1] <= part->alarmTime[1] + 2); // Check for Minutes
+    if(triggerAlarm){
+        synchronizeSet(BUZZER_ON);
+    }
+    else{
+        synchronizeClear(BUZZER_ON);
+        part->buzzer->powerOn(BUZZER_MODE,BUZZER_CHANNEL,NONE); // Kill Alarm
+    }
    }
+}
+
+void turnOnBuzzer(void *pvParameters){
+    // Components
+    parts_t *part = (parts_t*)pvParameters;
+    buzzer_t *buzzer = part->buzzer;
+    int64_t buzzerStartTime = 0, duration = 0;
+    int powerLevel = LOW;
+
+    // Turn On Buzzer
+    while(true){
+        synchronizeWait(HW_INITIALIZE| CLOCK_MODE_BIT | BUZZER_ON); // Do Not Read until Read Time Clock Time event is active
+    
+        // Get Buzzer Levels
+        if(buzzerStartTime == 0 || duration >= 1000){ // Notify that Buzzer is ON
+            buzzerStartTime = esp_timer_get_time(); // Record Current Time
+            powerLevel++;
+        }
+        else{
+            duration = esp_timer_get_time() - buzzerStartTime;
+        }
+
+        // Setup PWM
+        if(powerLevel == LOW || powerLevel == MID || powerLevel == HIGH || powerLevel == MAX){
+            buzzer->powerOn(BUZZER_MODE,BUZZER_CHANNEL,(buzzer_power_t)powerLevel);
+            vTaskDelay(pdMS_TO_TICKS(200));
+            buzzer->powerOn(BUZZER_MODE,BUZZER_CHANNEL,NONE);
+            vTaskDelay(pdMS_TO_TICKS(200));
+        }
+    }
 }
 
