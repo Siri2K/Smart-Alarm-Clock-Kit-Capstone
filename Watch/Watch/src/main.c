@@ -14,26 +14,31 @@
 #define BUTTON_SHORT_PRESSED BIT(1)
 #define BUTTON_LONG_PRESSED BIT(2)
 
+#define ECG_DATA_READ BIT(4)
 
 /* Global Variables */
-// Accelerometer Data
-accelerometer_data_t *accelerometer;
+// Data
+accelerometer_data_t *accelerometer; // Accelerometer
+uint8_t* bpm; // HeartRate
 
 // Threads
 K_THREAD_STACK_DEFINE(control_task_stack, STACK_SIZE);
 K_THREAD_STACK_DEFINE(intialize_all_parts_stack, STACK_SIZE);
 K_THREAD_STACK_DEFINE(button_control_stack, STACK_SIZE);
 K_THREAD_STACK_DEFINE(display_battery_levels_stack, STACK_SIZE);
+K_THREAD_STACK_DEFINE(read_ecg_stack, STACK_SIZE);
 
 struct k_thread *control_task_data;
 struct k_thread *intialize_all_parts_data;
 struct k_thread *button_control_data;
 struct k_thread *display_battery_levels_data;
+struct k_thread *read_ecg_data;
 
 k_tid_t control_task_id;
 k_tid_t intialize_all_parts_id;
 k_tid_t button_control_id;
 k_tid_t display_battery_levels_id;
+k_tid_t read_ecg_id;
 
 // Event group for synchronization
 K_EVENT_DEFINE(task_events);
@@ -46,10 +51,14 @@ void controlTask();
 void intializeAllParts();
 void buttonControl();
 void displayBatteryLevels();
+void readECG();
 
 // Main
 int main(void)
-{
+{   
+    // Initialize BPM
+    bpm = (uint8_t*)malloc(sizeof(uint8_t));
+
     /* Create Control Task*/
     control_task_id = k_thread_create(
         control_task_data,
@@ -101,6 +110,19 @@ void controlTask(){
         display_battery_levels_stack,
         STACK_SIZE,
         (k_thread_entry_t)displayBatteryLevels,
+        NULL,
+        NULL,
+        NULL,
+        K_PRIO_PREEMPT(2),
+        0,
+        K_NO_WAIT
+    );
+
+    read_ecg_id = k_thread_create(
+        read_ecg_data,
+        read_ecg_stack,
+        STACK_SIZE,
+        (k_thread_entry_t)readECG,
         NULL,
         NULL,
         NULL,
@@ -164,4 +186,11 @@ void displayBatteryLevels(){
         turnOffRGB();
     }
     
+}
+
+void readECG(){
+    // Calculate BPM
+    k_event_clear(&task_events, ECG_DATA_READ);
+    *bpm = calculateBPM(getFIFODataSamples()); // Get BPM Data
+    k_event_post(&task_events, ECG_DATA_READ);
 }
