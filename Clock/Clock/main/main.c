@@ -18,6 +18,8 @@
 #define TIME_MODE_BIT (EventBits_t)(1<<2) // Slide_Switch on Time Mode
 #define ALARM_MODE_BIT (EventBits_t)(1<<3) // Slide_Switch on Alarm Mode
 
+// Sensors
+#define READ_TIME_BIT (EventBits_t)(1<<4) // Slide_Switch on Alarm Mode
 
 /* Global Structures */
 typedef struct parts_t{
@@ -42,6 +44,7 @@ EventGroupHandle_t eventGroup; // Event Group Handle
 TaskHandle_t createHWHandle; // HW Handle
 TaskHandle_t checkControlModeHandle; // SlideSwitch Handle
 TaskHandle_t readTimeHandle, changeCurrentTimeHandle, changeAlarmTimeHandle; // SlideSwitch Handle
+TaskHandle_t readClockTimeHandle; // RTC Handle
 
 /* Function Prototypes */
 // Control Task
@@ -50,9 +53,9 @@ void ControlTask(void *pvParameters);
 // Computation Tasks
 void createAllHWTask(void *pvParameters);
 void checkControlMode(void *pvParameters);
-void readTime(void *pvParameters);
 void changeCurrentTime(void *pvParameters);
 void changeAlarmTime(void *pvParameters);
+void readClockTime(void *pvParameters);
 
 // Helper Function
 EventBits_t synchronizeWait(const EventBits_t uxBitsToSet);
@@ -79,17 +82,16 @@ void ControlTask(void *pvParameters){
     parts_t *part = (parts_t*)pvParameters;
     eventGroup = xEventGroupCreate();
     EventBits_t uxBits;
-    eTaskState taskState;
 
     /* Create All Tasks */
     // Initalize All HW
-    xTaskCreatePinnedToCore(createAllHWTask,"HardWare Initialization", sizeof(parts_t),parts, configMAX_PRIORITIES -1, &createHWHandle,1);
+    xTaskCreatePinnedToCore(createAllHWTask,"HardWare Initialization", sizeof(parts_t),part, configMAX_PRIORITIES -1, &createHWHandle,1);
     
     // Create All Functionality tasks
-    xTaskCreatePinnedToCore(checkControlMode,"Check Clock Mode", sizeof(parts_t),parts, tskIDLE_PRIORITY + 3,&checkControlModeHandle,1);
-    xTaskCreatePinnedToCore(readTime,"Read Current Time", sizeof(parts_t),parts, tskIDLE_PRIORITY,&readTimeHandle,1);
-    xTaskCreatePinnedToCore(changeCurrentTime,"Change Curent Time", sizeof(parts_t),parts, tskIDLE_PRIORITY + 1,&changeCurrentTimeHandle,1);
-    xTaskCreatePinnedToCore(changeAlarmTime,"Change Alarm Time", sizeof(parts_t),parts, tskIDLE_PRIORITY + 1,&changeAlarmTimeHandle,1);
+    xTaskCreatePinnedToCore(checkControlMode,"Check Clock Mode", sizeof(parts_t),part, tskIDLE_PRIORITY + 3,&checkControlModeHandle,1);
+    xTaskCreatePinnedToCore(readClockTime,"Read Current Time", sizeof(parts_t),part, tskIDLE_PRIORITY,&readTimeHandle,1);
+    xTaskCreatePinnedToCore(changeCurrentTime,"Change Curent Time", sizeof(parts_t),part, tskIDLE_PRIORITY + 1,&changeCurrentTimeHandle,1);
+    xTaskCreatePinnedToCore(changeAlarmTime,"Change Alarm Time", sizeof(parts_t),part, tskIDLE_PRIORITY + 1,&changeAlarmTimeHandle,1);
 
     // Execute based on Events
     while (true){
@@ -123,16 +125,34 @@ EventBits_t synchronizeSet(const EventBits_t uxBitsToSet){
     );
 }
 
+EventBits_t synchronizeClear(const EventBits_t uxBitsToSet){
+    return xEventGroupClearBits(eventGroup,uxBitsToSet);
+}
+
 void createAllHWTask(void *pvParameters){
     // Convert to Parts
     parts_t *part = (parts_t*)pvParameters; 
 
     // Initialize All Components
     // initializeLCD(parts->lcd);
-    // initializeRTC(parts->rtc);
-    initializeSlideSwitch(parts->slide_switch);
-    initializeButtons(parts->button);
+    initializeRTC(part->rtc);
+    initializeSlideSwitch(part->slide_switch);
+    initializeButtons(part->button);
     // initializeBuzzer(parts->buzzer);
+
+    // Initialize Time
+    part->currentTime = (uint8_t*) malloc(4*sizeof(uint8_t));
+    part->alarmTime = (uint8_t*) malloc(4*sizeof(uint8_t));
+
+    part->currentTime[0] = 12; part->currentTime[1] = 0; part->currentTime[2] = 0;  part->currentTime[3] = 0;
+    part->alarmTime[0] = 12; part->alarmTime[1] = 0; part->alarmTime[2] = 0; part->alarmTime[3] = 0;
+
+    part->rtc->writeTime(
+        part->currentTime[0], // hour = 0100 1100 -> 12AM
+        part->currentTime[1], // minute = 0x00 -> 00
+        part->currentTime[2], // Second = 0x00 -> 00
+        (bool)part->currentTime[3] 
+    ); // Initialize to 12:00:00 am
 
     // Set Event
     synchronizeSet(HW_INITIALIZE);
@@ -144,14 +164,14 @@ void checkControlMode(void *pvParameters){
 
         // Extract variables
         parts_t *part = (parts_t*)pvParameters;
-        slide_switch_t *slideSwitch = parts->slide_switch;
+        slide_switch_t *slideSwitch = part->slide_switch;
         
         // Choose Time Tasks
         switch (*(slideSwitch->mode(slideSwitch->onClockMode,slideSwitch->onTimeMode, slideSwitch->onAlarmMode)))
         {
         case CLOCK:
-            // xEventGroupClearBits(eventGroup,TIME_MODE_BIT|ALARM_MODE_BIT); // Clear Alarm and Time Bits
-            // synchronizeSet(CLOCK_MODE_BIT); // Read Clock Time Event
+            xEventGroupClearBits(eventGroup,TIME_MODE_BIT|ALARM_MODE_BIT); // Clear Alarm and Time Bits
+            synchronizeSet(CLOCK_MODE_BIT); // Read Clock Time Event
             break;
         case TIME:
             xEventGroupClearBits(eventGroup,CLOCK_MODE_BIT|ALARM_MODE_BIT); // Clear Alarm and Time Bits
@@ -167,13 +187,6 @@ void checkControlMode(void *pvParameters){
     }
 }
 
-void readTime(void *pvParameters){
-    while(true){
-        synchronizeWait(HW_INITIALIZE| CLOCK_MODE_BIT); // Do Not Read until Read Time Clock Time event is active
-        /* Read RTC values */
-    }
-}
-
 void changeCurrentTime(void *pvParameters){
     parts_t *part = (parts_t*)pvParameters;
     button_t *button = part->button;
@@ -182,26 +195,22 @@ void changeCurrentTime(void *pvParameters){
     // Change CurrentTime
     while(true){
         synchronizeWait(HW_INITIALIZE| TIME_MODE_BIT); // Update Clock Time
-        for(int i=0;i<3;i++){
-            if(button->gpioPin == SELECT_BUTTON && !button->pressed(button->gpioPin)){
-                while(!button->pressed(button->gpioPin)); // Lock Task until Button is released
-                timeIndex++;
-            }
-            else if(button->gpioPin == UP_BUTTON && !button->pressed(button->gpioPin)){
-                parts->currentTime[timeIndex]++;
-            }
-            else if(button->gpioPin == DOWN_BUTTON && !button->pressed(button->gpioPin)){
-                parts->currentTime[timeIndex]--;
-            }
+        if(button->gpioPin == SELECT_BUTTON && !button->pressed(button->gpioPin)){
+            while(!button->pressed(button->gpioPin)); // Lock Task until Button is released
+            timeIndex++;
+        }
+        else if(button->gpioPin == UP_BUTTON && !button->pressed(button->gpioPin)){
+            parts->currentTime[timeIndex]++;
+        }
+        else if(button->gpioPin == DOWN_BUTTON && !button->pressed(button->gpioPin)){
+            parts->currentTime[timeIndex]--;
+        }
 
-            if(timeIndex >= 3){
-                break;
-            }
+        // Reset index
+        if(timeIndex >=3){
+            timeIndex = 0;
         }
-        if(timeIndex >= 3){
-            break;
-        }
-        vTaskDelay(pdMS_TO_TICKS(20)); // Update every 20s
+        vTaskDelay(pdMS_TO_TICKS(20)); // Update every 20ms
     }
     
 }
@@ -210,30 +219,47 @@ void changeAlarmTime(void *pvParameters){
     parts_t *part = (parts_t*)pvParameters;
     button_t *button = part->button;
     uint8_t timeIndex = 0;
-    uint8_t *currentTime = (uint8_t*)malloc(3*sizeof(uint8_t));
+    uint8_t *alarmTime = (uint8_t*)malloc(3*sizeof(uint8_t));
     
     // Change Time
     while(true){
         synchronizeWait(HW_INITIALIZE| ALARM_MODE_BIT); // Update Clock Time
-        for(int i=0;i<3;i++){
-            if(button->gpioPin == SELECT_BUTTON && !button->pressed(button->gpioPin)){
-                while(!button->pressed(button->gpioPin)); // Lock Task until Button is released
-                timeIndex++;
-            }
-            else if(button->gpioPin == UP_BUTTON && !button->pressed(button->gpioPin)){
-                currentTime[timeIndex]++;
-            }
-            else if(button->gpioPin == DOWN_BUTTON && !button->pressed(button->gpioPin)){
-                currentTime[timeIndex]--;
-            }
+        if(button->gpioPin == SELECT_BUTTON && !button->pressed(button->gpioPin)){
+            while(!button->pressed(button->gpioPin)); // Lock Task until Button is released
+            timeIndex++;
+        }
+        else if(button->gpioPin == UP_BUTTON && !button->pressed(button->gpioPin)){
+            alarmTime[timeIndex]++;
+        }
+        else if(button->gpioPin == DOWN_BUTTON && !button->pressed(button->gpioPin)){
+            alarmTime[timeIndex]--;
+        }
 
-            if(timeIndex >= 3){
-                break;
-            }
+        // Reset index
+        if(timeIndex >=3){
+            timeIndex = 0;
         }
-        if(timeIndex >= 3){
-            break;
-        }
-        vTaskDelay(pdMS_TO_TICKS(20)); // Update every 20s
+        vTaskDelay(pdMS_TO_TICKS(20)); // Update every 20ms
     }
 }
+
+void readClockTime(void *pvParameters){
+   // Components
+   parts_t *part = (parts_t*)pvParameters;
+   real_time_clock_t *rtc = part->rtc;
+
+   // Read Clock Time
+   while(true){
+    synchronizeWait(HW_INITIALIZE| CLOCK_MODE_BIT); // Do Not Read until Read Time Clock Time event is active
+    synchronizeClear(READ_TIME_BIT);
+    rtc->readTime(
+        &part->currentTime[0],
+        &part->currentTime[1],
+        &part->currentTime[2],
+        (bool*)(&part->currentTime[3])
+    );
+    synchronizeSet(READ_TIME_BIT);
+    synchronizeWait(HW_INITIALIZE| CLOCK_MODE_BIT);
+   }
+}
+
