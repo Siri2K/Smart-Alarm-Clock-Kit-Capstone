@@ -16,9 +16,9 @@ void initializeAccelerometer(accelerometer_data_t* accelerometer_data){
 
     // Initialize Accelerometer Data
     accelerometer_data->id = ACCEL_ID;
-    accelerometer_data->x = 0;
-    accelerometer_data->y = 0;
-    accelerometer_data->z = 0;
+    accelerometer_data->vx = 0;
+    accelerometer_data->vy = 0;
+    accelerometer_data->vz = 0;
 }
 
 void validateConnectiontoAccelerometer(){
@@ -79,6 +79,11 @@ void readXYZ(accelerometer_data_t* accelerometer_data){
     uint8_t xLSB[1],xMSB[1]; // Store X values
     uint8_t yLSB[1],yMSB[1]; // Store Y values
     uint8_t zLSB[1],zMSB[1]; // Store Z values
+    uint8_t x,y,z; // Position
+
+    // Get Current Time and Duration
+    int64_t startTime = 0;
+    int64_t duration = 0;
 
     // Extract Data from Accelerometer
     readAccelerometer(ACCEL_OUTPUT_X_LSB,xLSB,1);
@@ -87,9 +92,15 @@ void readXYZ(accelerometer_data_t* accelerometer_data){
     readAccelerometer(ACCEL_OUTPUT_Y_MSB,yMSB,1);
     readAccelerometer(ACCEL_OUTPUT_Z_LSB,zLSB,1);
     readAccelerometer(ACCEL_OUTPUT_Z_MSB,zMSB,1);
+    duration = k_uptime_get() - startTime;
 
-    // Store data
-    accelerometer_data->x = (xMSB[0] << 8) | xLSB[0];
-    accelerometer_data->y = (yMSB[0] << 8) | yLSB[0];
-    accelerometer_data->z = (zMSB[0] << 8) | zLSB[0];
+    // Get X,Y,Z Positions
+    x = (xMSB[0] << 8) | xLSB[0];
+    y = (yMSB[0] << 8) | yLSB[0];
+    z = (zMSB[0] << 8) | zLSB[0];
+
+    // Store Velocity
+    accelerometer_data->vx = x/((int8_t)duration);
+    accelerometer_data->vy = y/((int8_t)duration);
+    accelerometer_data->vz = z/((int8_t)duration);
 }

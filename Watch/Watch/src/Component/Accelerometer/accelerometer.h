@@ -30,7 +30,7 @@
 // Global variables
 typedef struct accelerometer_data_t{
     uint8_t id;
-    int16_t x,y,z;
+    int16_t vx,vy,vz;
 }accelerometer_data_t;
 
 // Setup Devices
