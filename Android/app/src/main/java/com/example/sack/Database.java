@@ -13,6 +13,7 @@ public class Database extends SQLiteOpenHelper {
     //Table Names
     private static final String Table_Heartbeat = "Heartbeat_sensor";
     private static final String Table_Userid = "user_data";
+    private static final String TABLE_ALARMS = "alarms";
 
     //Userid Table Columns
     private static final String COLUMN_User_ID = "user_id";
@@ -25,6 +26,12 @@ public class Database extends SQLiteOpenHelper {
     private static final String COLUMN_USER_REF_ID = "user_id"; //Foreign
     private static final String COLUMN_Sensor_Data = "sensor_data";
     private static final String COLUMN_TIMESTAMP = "timestamp";
+
+    //Alarms Table
+    private static final String COLUMN_ALARM_ID = "alarm_id";
+    private static final String COLUMN_ALARM_TIME = "alarm_time";
+    private static final String COLUMN_ALARM_LABEL = "alarm_label";
+    private static final String COLUMN_ALARM_STATUS = "alarm_status";  // 0 = Disabled, 1 = Enabled
 
     // User Table Creation
     private static final String CREATE_USERS_TABLE =
@@ -42,6 +49,15 @@ public class Database extends SQLiteOpenHelper {
                     COLUMN_TIMESTAMP + " TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
                     "FOREIGN KEY (" + COLUMN_USER_REF_ID + ") REFERENCES " + Table_Userid + "(" + COLUMN_User_ID + "));";
 
+
+    // Alarm Table Creation
+    private static final String CREATE_ALARM_TABLE =
+            "CREATE TABLE" + TABLE_ALARMS + " (" +
+                    COLUMN_ALARM_ID + "INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    COLUMN_ALARM_TIME + "INTEGER NOT NULL, " +
+                    COLUMN_ALARM_LABEL + "TEXT, " +
+                    COLUMN_ALARM_STATUS + "INTEGER DEFAULT 1);";
+
     public Database(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
     }
@@ -50,12 +66,14 @@ public class Database extends SQLiteOpenHelper {
     public void onCreate(SQLiteDatabase sqLiteDatabase) {
         sqLiteDatabase.execSQL(CREATE_USERS_TABLE);
         sqLiteDatabase.execSQL(CREATE_SENSOR_TABLE);
+        sqLiteDatabase.execSQL(CREATE_ALARM_TABLE);
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase sqLiteDatabase, int oldVersion, int newVersion) {
         sqLiteDatabase.execSQL("DROP TABLE IF EXISTS " + Table_Userid);
         sqLiteDatabase.execSQL("DROP TABLE IF EXISTS " + Table_Heartbeat);
+        sqLiteDatabase.execSQL("DROP TABLE IF EXISTS " + TABLE_ALARMS);
         onCreate(sqLiteDatabase);
 
     }
@@ -86,6 +104,51 @@ public class Database extends SQLiteOpenHelper {
         values.put(COLUMN_SECURITY_ANSWER, securityAnswer);
         return db.insert(Table_Heartbeat, null, values);
     }
+
+    // Get Sensor Data for a Specific User
+    public Cursor getSensorDataByUserId(int userId) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        return db.rawQuery("SELECT * FROM " + Table_Heartbeat + " WHERE " + COLUMN_USER_REF_ID + "=?", new String[]{String.valueOf(userId)});
+    }
+
+    // Insert Alarm
+    public long insertAlarm(long timeInMinutes, String label){
+        SQLiteDatabase tdb = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(COLUMN_ALARM_TIME, timeInMinutes);
+        values.put(COLUMN_ALARM_LABEL, label);
+        values.put(COLUMN_ALARM_STATUS, 1);
+        return tdb.insert(TABLE_ALARMS, null, values);
+    }
+    // Delete Alarm
+    public boolean deleteAlarm(int alarmId){
+        SQLiteDatabase tdb = this.getWritableDatabase();
+        int deletedRows = tdb.delete(TABLE_ALARMS, COLUMN_ALARM_ID + "=?", new String[]{String.valueOf(alarmId)});
+        return deletedRows >0;
+    }
+
+    //Update Alarm
+    public boolean updateAlarm(int alarmId, long newTime, String newLabel) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(COLUMN_ALARM_TIME, newTime);
+        values.put(COLUMN_ALARM_LABEL, newLabel);
+        int rowsAffected = db.update(TABLE_ALARMS, values, COLUMN_ALARM_ID + "=?", new String[]{String.valueOf(alarmId)});
+        return rowsAffected > 0;
+    }
+    //Get All Alarms
+    public Cursor getAllAlarms(){
+        SQLiteDatabase tdb = this.getReadableDatabase();
+        return tdb.rawQuery("SELECT * FROM " + TABLE_ALARMS, null);
+    }
+    // Enable or Disable Alarm
+    public boolean updateAlarmStatus(int alarmId, boolean isEnabled) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(COLUMN_ALARM_STATUS, isEnabled ? 1 : 0);
+        int rowsAffected = db.update(TABLE_ALARMS, values, COLUMN_ALARM_ID + "=?", new String[]{String.valueOf(alarmId)});
+        return rowsAffected > 0;
+    }
     // Get Security Question for a User
     public String getSecurityQuestion(String username) {
         SQLiteDatabase db = this.getReadableDatabase();
@@ -114,10 +177,4 @@ public class Database extends SQLiteOpenHelper {
         int rowsAffected = db.update(Table_Userid, values, COLUMN_USERNAME + "=?", new String[]{username});
         return rowsAffected > 0;
     }
-    // Get Sensor Data for a Specific User
-    public Cursor getSensorDataByUserId(int userId) {
-        SQLiteDatabase db = this.getReadableDatabase();
-        return db.rawQuery("SELECT * FROM " + Table_Heartbeat + " WHERE " + COLUMN_USER_REF_ID + "=?", new String[]{String.valueOf(userId)});
-    }
-
 }

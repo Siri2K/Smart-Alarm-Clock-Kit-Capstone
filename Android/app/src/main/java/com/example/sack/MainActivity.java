@@ -53,7 +53,7 @@ private Database dbHelper;
             } else {
                 if (dbHelper.validateUser(username, password)) {
                     Toast.makeText(this, "Login Successful!", Toast.LENGTH_SHORT).show();
-                    int userId = dbHelper.getUserIdByEmail(username); // Retrieve User ID
+                    int userId = dbHelper.get(username); // Retrieve User ID
                     Intent intent = new Intent(MainActivity.this, HomePage.class);
                     intent.putExtra("USER_ID", userId); // Pass user ID to next activity
                     startActivity(intent);
@@ -70,7 +70,6 @@ private Database dbHelper;
             startActivity(intent);
         });
 
-        });
         ForgotPwd.setOnClickListener(new View.OnClickListener(){
 
             @Override
