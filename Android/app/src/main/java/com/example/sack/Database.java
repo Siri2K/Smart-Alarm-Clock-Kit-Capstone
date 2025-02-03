@@ -101,7 +101,7 @@ public class Database extends SQLiteOpenHelper {
     // Verify Security Answer
     public boolean verifySecurityAnswer(String username, String answer) {
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT " + COLUMN_SECURITY_ANSWER + " FROM " + TABLE_USERS + " WHERE " + COLUMN_USER_NAME + "=? AND " + COLUMN_SECURITY_ANSWER + "=?", new String[]{username, answer});
+        Cursor cursor = db.rawQuery("SELECT " + COLUMN_SECURITY_ANSWER + " FROM " + Table_Userid + " WHERE " + COLUMN_USERNAME + "=? AND " + COLUMN_SECURITY_ANSWER + "=?", new String[]{username, answer});
         boolean exists = cursor.getCount() > 0;
         cursor.close();
         return exists;
