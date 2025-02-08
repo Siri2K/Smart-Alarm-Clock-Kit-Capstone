@@ -21,6 +21,10 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- SignUpPage Activity -->
+        <activity android:name=".SignUpPage" />
+        <activity android:name="com.example.sack.nextRegisterStep" />
+        <activity android:name="com.example.sack.HomePage" />
     </application>
 
 </manifest>

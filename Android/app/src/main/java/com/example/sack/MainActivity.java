@@ -20,7 +20,7 @@ protected EditText Password;
 protected TextView ForgotPwd;
 protected TextView SignUp;
 protected Button Login;
-private Database dbHelper;
+private DatabaseHelper dbHelper;
 
 
     @Override
@@ -32,9 +32,9 @@ private Database dbHelper;
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
-            dbHelper = new Database(this);
-            setupUI();
         });
+        setupUI();
+        dbHelper = new DatabaseHelper(this);
     }
     private void setupUI() {
         Login = findViewById(R.id.loginButton);
@@ -47,15 +47,13 @@ private Database dbHelper;
         Login.setOnClickListener(v -> {
             String username = Username.getText().toString().trim();
             String password = Password.getText().toString().trim();
-
             if (username.isEmpty() || password.isEmpty()) {
-                Toast.makeText(this, "Please enter both email and password", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Please enter both username and password", Toast.LENGTH_SHORT).show();
             } else {
                 if (dbHelper.validateUser(username, password)) {
                     Toast.makeText(this, "Login Successful!", Toast.LENGTH_SHORT).show();
-                    int userId = dbHelper.get(username); // Retrieve User ID
                     Intent intent = new Intent(MainActivity.this, HomePage.class);
-                    intent.putExtra("USER_ID", userId); // Pass user ID to next activity
+                    intent.putExtra("USER_ID",username); // Pass userID to next activity
                     startActivity(intent);
                     finish(); // Close login activity
                 } else {

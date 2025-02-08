@@ -7,17 +7,6 @@
     android:layout_height="match_parent"
     android:background="#1E1E2E">
 
-    <!-- Welcome Message -->
-
-    <!-- Subtitle -->
-
-    <!-- Graph Placeholder -->
-
-    <!-- Optimal Bedtime Card -->
-
-    <!-- Stats Cards -->
-
-    <!-- Bottom Navigation -->
 
     <TextView
         android:id="@+id/welcomeMessage"
@@ -37,13 +26,15 @@
         android:id="@+id/subtitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
+        android:layout_marginStart="24dp"
         android:layout_marginTop="32dp"
         android:text="Interested in your heart rate during your sleep cycle?"
         android:textColor="#FFFFFF"
         android:textSize="16sp"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/welcomeMessage" />
+        app:layout_constraintTop_toBottomOf="@id/welcomeMessage"
+        app:layout_constraintVertical_bias="0.019" />
 
     <View
         android:id="@+id/graphPlaceholder"
@@ -51,10 +42,12 @@
         android:layout_height="200dp"
         android:layout_marginTop="32dp"
         android:background="#2E2E3E"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/subtitle" />
+        app:layout_constraintTop_toBottomOf="@id/subtitle"
+        app:layout_constraintVertical_bias="0.029" />
 
     <TextView
         android:id="@+id/optimalBedtimeLabel"
@@ -63,10 +56,12 @@
         android:layout_marginTop="32dp"
         android:text="Your optimal bedtime"
         android:textColor="#FFFFFF"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.498"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/graphPlaceholder" />
+        app:layout_constraintTop_toBottomOf="@id/graphPlaceholder"
+        app:layout_constraintVertical_bias="0.037" />
 
     <TextView
         android:id="@+id/optimalBedtime"
@@ -76,11 +71,11 @@
         android:text="10:30 - 11:30 pm"
         android:textColor="#FF6B6B"
         android:textSize="20sp"
-        app:layout_constraintBottom_toTopOf="@+id/bottomNavigationView"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/optimalBedtimeLabel"
-        app:layout_constraintVertical_bias="0.011" />
+        app:layout_constraintVertical_bias="0.046" />
 
     <LinearLayout
         android:id="@+id/linearLayout2"
@@ -88,32 +83,16 @@
         android:layout_height="wrap_content"
         android:layout_marginHorizontal="16dp"
         android:layout_marginTop="25dp"
-        android:layout_marginBottom="244dp"
         android:orientation="horizontal"
-        app:layout_constraintBottom_toTopOf="@+id/bottomNavigationView"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/optimalBedtime"
-        app:layout_constraintVertical_bias="0.0">
+        app:layout_constraintTop_toBottomOf="@+id/optimalBedtime">
 
         <!-- Time Asleep Card -->
 
         <!-- Last Week Card -->
 
     </LinearLayout>
-
-    <com.google.android.material.bottomnavigation.BottomNavigationView
-        android:id="@+id/bottomNavigationView"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="48dp"
-        android:background="#2E2E3E"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/optimalBedtimeLabel"
-        app:layout_constraintVertical_bias="1.0" />
 
     <LinearLayout
         android:id="@+id/linearLayout"
