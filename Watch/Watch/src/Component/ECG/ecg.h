@@ -9,12 +9,11 @@
 #include <zephyr/drivers/gpio.h>
 
 /* C Library */
+#include <stdio.h>
 #include <stdlib.h>
 
 /* Defnitions */
-// ECG Read and Write Registers
-#define ECG_WRITE_ADDRESS   0xC4
-#define ECG_READ_ADDRESS    0xC5
+#define ECG_ADDRESS 0x62 // ECG Address
 #define ECG_NODE DT_NODELABEL(i2c0)
 
 // Interrupt
@@ -44,27 +43,15 @@
 // FIFO Data Register
 #define ECG_FIFO_DATA 0x08
 
+// ECG Parameters
+#define SAMPLE_COUNT 100
+#define SAMPLE_RATE 128
+#define THRESHOLD 50000  // Adjust based on sensor output
+#define MIN_PEAK_DISTANCE 5  // Minimum distance between peaks (avoid noise)
 
-#define SAMPLE_RATE 25
 
-/* Globals */
-extern const struct device *ECGDev;
-extern struct i2c_config ECGConfig;
+extern uint8_t initializeECG();
 
-extern uint8_t ECGBuffer[1];
-
-int connectToECG();
-
-int initializeECG();
-
-void writeECG();
-
-uint8_t readECG();
-
-uint8_t* readFIFO();
-
-uint32_t readFIFOData();
-
-uint8_t* readHeartBeat(uint32_t fifo_sample);
+extern uint8_t getBPM();
 
 #endif

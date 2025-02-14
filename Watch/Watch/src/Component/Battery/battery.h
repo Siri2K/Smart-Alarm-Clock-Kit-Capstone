@@ -9,6 +9,7 @@
 
 /* C Library */
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdbool.h>
 
 // Battery device
@@ -25,26 +26,17 @@
 
 // Global objects and structures
 typedef enum battery_charge_level_t{
-    BATTERY_MIN = 15, // 10% before full discharge
+    BATTERY_MIN = 15, // 15% before full discharge
     BATTERY_LOW = 25, // 25% before full discharge
     BATTERY_MID = 50, // 50% before full discharge
     BATTERY_HIGH = 75, // 75% before full discharge
-    BATTERY_MAX = 100, // 75% before full discharge
+    BATTERY_MAX = 99, // 99% before full discharge
 }battery_charge_level_t;
 
-extern const struct device *batteryDevice;
-extern struct adc_channel_cfg batteryChannel;
-extern struct adc_sequence batterySequence;
-
-
-// extern const struct adc_dt_spec batteryChannel;
-extern int16_t batteryBuffer[1];
 
 /* Tasks */
-int intializeBattery();
+extern uint8_t initializeBattery(); // Setup ADC
 
-void configureBattery();
-
-battery_charge_level_t readbatteryCharge();
+extern uint16_t readBatteryChargePercentage(); // Read Battery percentages
 
 #endif

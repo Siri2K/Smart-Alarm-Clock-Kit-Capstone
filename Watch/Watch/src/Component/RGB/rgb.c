@@ -1,61 +1,54 @@
 #include "rgb.h"
 
-const struct gpio_dt_spec redNode = GPIO_DT_SPEC_GET_OR(RED_NODE, gpios,{0});
-const struct gpio_dt_spec greenNode = GPIO_DT_SPEC_GET_OR(GREEN_NODE, gpios,{0});
-const struct gpio_dt_spec blueNode = GPIO_DT_SPEC_GET_OR(BLUE_NODE, gpios,{0});
+static const struct gpio_dt_spec redNode = GPIO_DT_SPEC_GET_OR(RED_NODE, gpios,{0});
+static const struct gpio_dt_spec greenNode = GPIO_DT_SPEC_GET_OR(GREEN_NODE, gpios,{0});
+static const struct gpio_dt_spec blueNode = GPIO_DT_SPEC_GET_OR(BLUE_NODE, gpios,{0});
 
-
-int initializeRGB(){
+uint8_t initializeRGB(){
     // Status Check
-    int status = 1;
-    
-    // Check if all LED's are ready
-    status &= gpio_is_ready_dt(&redNode);
-    status &= gpio_is_ready_dt(&greenNode);
-    status &= gpio_is_ready_dt(&blueNode);
+    struct gpio_dt_spec rgbNodes[3] = {redNode,greenNode,blueNode};
 
-    // Configure each pin
-    status &= gpio_pin_configure_dt(&redNode,GPIO_OUTPUT_ACTIVE);
-    status &= gpio_pin_configure_dt(&greenNode,GPIO_OUTPUT_ACTIVE);
-    status &= gpio_pin_configure_dt(&blueNode,GPIO_OUTPUT_ACTIVE);
-
-    return status;
+    // Check and Configure Each LED
+    for(uint8_t i=0;i<3;i++){
+        if((gpio_is_ready_dt(&rgbNodes[i]) && gpio_pin_configure_dt(&rgbNodes[i],GPIO_OUTPUT_INACTIVE)) != 0){ // Break Early
+            break;
+        }
+    }
+    return 0;
 }
 
-int turnOffRGB(){
+uint8_t turnOffRGB(){
     // Status Check
-    int status = 1;
+    struct gpio_dt_spec rgbNodes[3] = {redNode,greenNode,blueNode};
 
     // Turn off All RGB GPIO
-   status &= gpio_pin_configure_dt(&redNode,1);
-   status &= gpio_pin_configure_dt(&greenNode,1);
-   status &= gpio_pin_configure_dt(&blueNode,1);
-
-    return status;
+    for(uint8_t i=0;i<3;i++){
+        if(gpio_pin_set_dt(&rgbNodes[i],1) != 0){ // Break Early
+            break;
+        }
+    }
+    return 0;
 }
 
-int turnOnRGB(rgb_colors_t color){
-    // Status Check
-    int status = 1;
+uint8_t turnOnRGB(rgb_colors_t color){
+    // Turn off all LEDs before setting the desired color
+    if(turnOffRGB() != 0){
+        return 1; // Error
+    }
 
     // Choose Color
     switch (color)
     {
     case RED: // Red Light
-        status &= gpio_pin_set_dt(&redNode,0);
+        return (uint8_t)gpio_pin_set_dt(&redNode,0);
         break;
     case YELLOW: // Yellow Light
-        status &= gpio_pin_set_dt(&redNode,0);
-        status &= gpio_pin_set_dt(&greenNode,0);
+        return (uint8_t)gpio_pin_set_dt(&redNode,0) && (uint8_t)gpio_pin_set_dt(&greenNode,0);
         break;
     case GREEN: // Green Light
-        status &= gpio_pin_set_dt(&blueNode,0);
-        break;
-    default:
-        status &= turnOffRGB();
+        return (uint8_t)gpio_pin_set_dt(&blueNode,0);
         break;
     }
 
-    
-    return status;
+    return 0;
 } 

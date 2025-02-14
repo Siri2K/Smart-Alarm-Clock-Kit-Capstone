@@ -1,106 +1,78 @@
 #include "accelerometer.h"
 
-const struct device *csDev = DEVICE_DT_GET(ACCEL_NODE);
-const struct device *batteryDev = DEVICE_DT_GET(ACCEL_NODE);
+static const struct device *csDev = DEVICE_DT_GET(ACCEL_NODE);
+static const struct device *accelDev = DEVICE_DT_GET(ACCEL_NODE);
 
-struct spi_config accelConfig = {
+static struct spi_config accelConfig = {
     .frequency = 40000000,
     .operation = SPI_WORD_SET(8),
     .slave = 0,
 };
 
-void initializeAccelerometer(accelerometer_data_t* accelerometer_data){
-    // Setup CS GPIO Pin
-    gpio_pin_configure(csDev, CS_PIN, GPIO_OUTPUT);
-    gpio_pin_set(csDev, CS_PIN, GPIO_OUT_PIN16_High);
-
+uint8_t initializeAccelerometer(accelerometer_data_t* accelerometer_data){
     // Initialize Accelerometer Data
-    accelerometer_data->id = ACCEL_ID;
     accelerometer_data->vx = 0;
     accelerometer_data->vy = 0;
     accelerometer_data->vz = 0;
+
+    // Setup CS GPIO Pin
+    return gpio_pin_configure(csDev, CS_PIN, GPIO_OUTPUT) && gpio_pin_set(csDev, CS_PIN, GPIO_OUT_PIN16_High);
 }
 
-void validateConnectiontoAccelerometer(){
-    // Read CHIP ID
-    uint8_t accelID[1] = {0};
-    readAccelerometer(ACCEL_ID_REG,accelID,1);
-}
-
-void readAccelerometer(uint8_t reg, uint8_t values[], uint8_t size) {
-    // Return value
-    int status = 0;
-
+static uint8_t readAccelerometer(uint8_t reg, uint8_t *values, uint8_t size) {
     // Setup Buffer
-    uint8_t txBuffer[1];
-    txBuffer[0] = reg;
+    uint8_t status = 0;
+    uint8_t txBuffer[1] = {reg};
 
     // Setup SPI
-    struct spi_buf txSPIBuffer[] = {{
+    struct spi_buf txSPIBuffer = {
         .buf = txBuffer,
         .len = sizeof(txBuffer),
-       }
     };
 
     struct spi_buf_set txSPIBufferSet = {
-        .buffers = txSPIBuffer,
+        .buffers = &txSPIBuffer,
         .count = 1,
     };
 
-    struct spi_buf rxSPIBuffer[] = {{
+    struct spi_buf rxSPIBuffer = {
         .buf = values,
-        .len = sizeof(values),
-       }
+        .len = size,  // Corrected to use the 'size' parameter directly
     };
 
     struct spi_buf_set rxSPIBufferSet = {
-        .buffers = rxSPIBuffer,
-        .count = size,
+        .buffers = &rxSPIBuffer,
+        .count = 1,  // This should be 1 because you're only passing one buffer
     };
     
     // Perform SPI Read
-    gpio_pin_set(csDev, CS_PIN, 0);
-    do{
-        txBuffer[0] = reg;
-        status = spi_write(accelDev, &accelConfig, &txSPIBufferSet);
-
-        if(status < 0){
-            break;
-        }
-
-        status = spi_read(accelDev, &accelConfig, &rxSPIBufferSet);
-    }while(false);
-    gpio_pin_set(csDev, CS_PIN, 1);
-    
+    status = gpio_pin_set(csDev, CS_PIN, 0);
+    status = spi_transceive(accelDev, &accelConfig, &txSPIBufferSet, &rxSPIBufferSet);
+    status = gpio_pin_set(csDev, CS_PIN, 1);
+    return status;
 }
 
-void readXYZ(accelerometer_data_t* accelerometer_data){
+uint8_t readXYZ(accelerometer_data_t* accelerometer_data){
+    // Get Status
+    uint8_t status = 0;
+
     // Stored Axis values
-    uint8_t xLSB[1],xMSB[1]; // Store X values
-    uint8_t yLSB[1],yMSB[1]; // Store Y values
-    uint8_t zLSB[1],zMSB[1]; // Store Z values
-    uint8_t x,y,z; // Position
+    int8_t rawData[6]; // X, Y, Z
 
     // Get Current Time and Duration
-    int64_t startTime = 0;
-    int64_t duration = 0;
+    int64_t startTime = k_uptime_get();
 
     // Extract Data from Accelerometer
-    readAccelerometer(ACCEL_OUTPUT_X_LSB,xLSB,1);
-    readAccelerometer(ACCEL_OUTPUT_X_MSB,xMSB,1);
-    readAccelerometer(ACCEL_OUTPUT_Y_LSB,yLSB,1);
-    readAccelerometer(ACCEL_OUTPUT_Y_MSB,yMSB,1);
-    readAccelerometer(ACCEL_OUTPUT_Z_LSB,zLSB,1);
-    readAccelerometer(ACCEL_OUTPUT_Z_MSB,zMSB,1);
-    duration = k_uptime_get() - startTime;
+    status = readAccelerometer(ACCEL_OUTPUT_X_LSB,rawData,6);
+    
+    if(status == 0){
+        // Store velocities
+        int64_t duration  = k_uptime_get() - startTime;
+        accelerometer_data->vx = (int8_t)(((rawData[1] << 8) | rawData[0])/(duration));
+        accelerometer_data->vy = (int8_t)(((rawData[3] << 8) | rawData[2])/(duration));
+        accelerometer_data->vz = (int8_t)(((rawData[5] << 8) | rawData[4])/(duration));
+    }
 
-    // Get X,Y,Z Positions
-    x = (xMSB[0] << 8) | xLSB[0];
-    y = (yMSB[0] << 8) | yLSB[0];
-    z = (zMSB[0] << 8) | zLSB[0];
-
-    // Store Velocity
-    accelerometer_data->vx = x/((int8_t)duration);
-    accelerometer_data->vy = y/((int8_t)duration);
-    accelerometer_data->vz = z/((int8_t)duration);
+    return status;
+    
 }
