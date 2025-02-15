@@ -12,11 +12,12 @@
         "lcd.h": "c",
         "event_groups.h": "c",
         "realtimeclock.h": "c",
-        "chrono": "c"
+        "chrono": "c",
+        "button.h": "c",
+        "ble.h": "c",
+        "slideswitch.h": "c",
+        "esp_bt.h": "c"
     },
     "idf.flashType": "UART",
-    "idf.portWin": "COM6",
-    "idf.openOcdConfigs": [
-        "board/esp32-wrover-kit-3.3v.cfg"
-    ]
+    "idf.portWin": "COM3"
 }

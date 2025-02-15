@@ -5,21 +5,27 @@
 #include "RealTimeClock.h"
 #include "SlideSwitch.h"
 
+/* Services Headers */
+#include "BLE.h"
+
 /* FreeRTOS Header */
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
 
 /* Defnitions */
-// initialization
-#define HW_INITIALIZE (EventBits_t)(1<<0) // HW Initialized
+// Hardware
+#define EVT_HW_INITIALIZE (EventBits_t)(1<<0) // HW Initialized
 
 // Clock Modes
-#define CLOCK_MODE_BIT (EventBits_t)(1<<1) // Slide_Switch on Clock Mode
-#define TIME_MODE_BIT (EventBits_t)(1<<2) // Slide_Switch on Time Mode
-#define ALARM_MODE_BIT (EventBits_t)(1<<3) // Slide_Switch on Alarm Mode
+#define EVT_CLOCK_MODE (EventBits_t)(1<<1) // Slide_Switch on Clock Mode
+#define EVT_TIME_MODE (EventBits_t)(1<<2) // Slide_Switch on Time Mode
+#define EVT_ALARM_MODE (EventBits_t)(1<<3) // Slide_Switch on Alarm Mode
 
 // Sensors
-#define READ_TIME_BIT (EventBits_t)(1<<4) // Slide_Switch on Alarm Mode
+#define EVT_READ_TIME (EventBits_t)(1<<4) // Slide_Switch on Alarm Mode
+
+// BLE
+#define EVT_BLE_INITIALIZE (EventBits_t)(1<<5) // Initialize BLE
 
 /* Global Structures */
 typedef struct parts_t{
@@ -43,8 +49,9 @@ parts_t *parts = NULL;
 EventGroupHandle_t eventGroup; // Event Group Handle
 TaskHandle_t createHWHandle; // HW Handle
 TaskHandle_t checkControlModeHandle; // SlideSwitch Handle
-TaskHandle_t readTimeHandle, changeCurrentTimeHandle, changeAlarmTimeHandle; // SlideSwitch Handle
+TaskHandle_t changeCurrentTimeHandle, changeAlarmTimeHandle; // SlideSwitch Handle
 TaskHandle_t readClockTimeHandle; // RTC Handle
+TaskHandle_t setupBLEHandle; // BLE handle
 
 /* Function Prototypes */
 // Control Task
@@ -56,10 +63,12 @@ void checkControlMode(void *pvParameters);
 void changeCurrentTime(void *pvParameters);
 void changeAlarmTime(void *pvParameters);
 void readClockTime(void *pvParameters);
+void setupBLE(void *pvParameters);
 
 // Helper Function
 EventBits_t synchronizeWait(const EventBits_t uxBitsToSet);
 EventBits_t synchronizeSet(const EventBits_t uxBitsToSet);
+EventBits_t synchronizeClear(const EventBits_t uxBitsToSet);
 
 /* Main Functions */
 void app_main(void)
@@ -81,34 +90,25 @@ void ControlTask(void *pvParameters){
     // Variables
     parts_t *part = (parts_t*)pvParameters;
     eventGroup = xEventGroupCreate();
-    EventBits_t uxBits;
+    
+    // Clear All Bits
+    synchronizeClear(EVT_HW_INITIALIZE|EVT_CLOCK_MODE|EVT_TIME_MODE|EVT_ALARM_MODE|EVT_READ_TIME|EVT_BLE_INITIALIZE);
 
     /* Create All Tasks */
     // Initalize All HW
     xTaskCreatePinnedToCore(createAllHWTask,"HardWare Initialization", sizeof(parts_t),part, configMAX_PRIORITIES -1, &createHWHandle,1);
     
     // Create All Functionality tasks
+    xTaskCreatePinnedToCore(setupBLE,"Setup BLE", sizeof(parts_t),part, tskIDLE_PRIORITY + 4,&setupBLEHandle,0);
+
+
     xTaskCreatePinnedToCore(checkControlMode,"Check Clock Mode", sizeof(parts_t),part, tskIDLE_PRIORITY + 3,&checkControlModeHandle,1);
-    xTaskCreatePinnedToCore(readClockTime,"Read Current Time", sizeof(parts_t),part, tskIDLE_PRIORITY,&readTimeHandle,1);
+    xTaskCreatePinnedToCore(readClockTime,"Read Current Time", sizeof(parts_t),part, tskIDLE_PRIORITY,&readClockTimeHandle,1);
     xTaskCreatePinnedToCore(changeCurrentTime,"Change Curent Time", sizeof(parts_t),part, tskIDLE_PRIORITY + 1,&changeCurrentTimeHandle,1);
     xTaskCreatePinnedToCore(changeAlarmTime,"Change Alarm Time", sizeof(parts_t),part, tskIDLE_PRIORITY + 1,&changeAlarmTimeHandle,1);
 
     // Execute based on Events
-    while (true){
-        uxBits = xEventGroupGetBits(eventGroup);
-
-        // Delete If Create HW Task is done
-        if(((uxBits & HW_INITIALIZE) && HW_INITIALIZE) && (createHWHandle != NULL)){
-            vTaskDelete(createHWHandle); // Delete Control HW tas after first Iteration
-        }
-    }
-    
-    // Kill All Task and Delete Event Group
-    vTaskDelete(createHWHandle);
-    vTaskDelete(checkControlModeHandle);
-    vTaskDelete(readTimeHandle);
-    vTaskDelete(changeCurrentTimeHandle);
-    vTaskDelete(changeAlarmTimeHandle);
+    vTaskStartScheduler();
 }
 
 EventBits_t synchronizeWait(const EventBits_t uxBitsToSet){
@@ -155,12 +155,13 @@ void createAllHWTask(void *pvParameters){
     ); // Initialize to 12:00:00 am
 
     // Set Event
-    synchronizeSet(HW_INITIALIZE);
+    synchronizeSet(EVT_HW_INITIALIZE);
+    vTaskDelete(createHWHandle);
 }
 
 void checkControlMode(void *pvParameters){
     while(true){
-        synchronizeWait(HW_INITIALIZE); // Do Not Start Until Hardware Is Intialized
+        synchronizeWait(EVT_HW_INITIALIZE); // Do Not Start Until Hardware Is Intialized
 
         // Extract variables
         parts_t *part = (parts_t*)pvParameters;
@@ -170,21 +171,22 @@ void checkControlMode(void *pvParameters){
         switch (*(slideSwitch->mode(slideSwitch->onClockMode,slideSwitch->onTimeMode, slideSwitch->onAlarmMode)))
         {
         case CLOCK:
-            xEventGroupClearBits(eventGroup,TIME_MODE_BIT|ALARM_MODE_BIT); // Clear Alarm and Time Bits
-            synchronizeSet(CLOCK_MODE_BIT); // Read Clock Time Event
+            xEventGroupClearBits(eventGroup,EVT_TIME_MODE|EVT_ALARM_MODE); // Clear Alarm and Time Bits
+            synchronizeSet(EVT_CLOCK_MODE); // Read Clock Time Event
             break;
         case TIME:
-            xEventGroupClearBits(eventGroup,CLOCK_MODE_BIT|ALARM_MODE_BIT); // Clear Alarm and Time Bits
-            synchronizeSet(TIME_MODE_BIT); // Read Time Mode Set
+            xEventGroupClearBits(eventGroup,EVT_CLOCK_MODE|EVT_ALARM_MODE); // Clear Alarm and Time Bits
+            synchronizeSet(EVT_TIME_MODE); // Read Time Mode Set
             break;
         case ALARM:
-            xEventGroupClearBits(eventGroup,CLOCK_MODE_BIT|TIME_MODE_BIT); // Clear Alarm and Time Bits
-            synchronizeSet(ALARM_MODE_BIT); // Read Time Mode Set
+            xEventGroupClearBits(eventGroup,EVT_CLOCK_MODE|EVT_TIME_MODE); // Clear Alarm and Time Bits
+            synchronizeSet(EVT_ALARM_MODE); // Read Time Mode Set
             break;
         default:
             break;
         }
     }
+    vTaskDelete(checkControlModeHandle);
 }
 
 void changeCurrentTime(void *pvParameters){
@@ -194,7 +196,7 @@ void changeCurrentTime(void *pvParameters){
     
     // Change CurrentTime
     while(true){
-        synchronizeWait(HW_INITIALIZE| TIME_MODE_BIT); // Update Clock Time
+        synchronizeWait(EVT_HW_INITIALIZE| EVT_TIME_MODE); // Update Clock Time
         if(button->gpioPin == SELECT_BUTTON && !button->pressed(button->gpioPin)){
             while(!button->pressed(button->gpioPin)); // Lock Task until Button is released
             timeIndex++;
@@ -212,7 +214,7 @@ void changeCurrentTime(void *pvParameters){
         }
         vTaskDelay(pdMS_TO_TICKS(20)); // Update every 20ms
     }
-    
+    vTaskDelete(changeCurrentTimeHandle);
 }
 
 void changeAlarmTime(void *pvParameters){
@@ -223,7 +225,7 @@ void changeAlarmTime(void *pvParameters){
     
     // Change Time
     while(true){
-        synchronizeWait(HW_INITIALIZE| ALARM_MODE_BIT); // Update Clock Time
+        synchronizeWait(EVT_HW_INITIALIZE| EVT_ALARM_MODE); // Update Clock Time
         if(button->gpioPin == SELECT_BUTTON && !button->pressed(button->gpioPin)){
             while(!button->pressed(button->gpioPin)); // Lock Task until Button is released
             timeIndex++;
@@ -241,6 +243,7 @@ void changeAlarmTime(void *pvParameters){
         }
         vTaskDelay(pdMS_TO_TICKS(20)); // Update every 20ms
     }
+    vTaskDelete(changeAlarmTimeHandle);
 }
 
 void readClockTime(void *pvParameters){
@@ -250,16 +253,24 @@ void readClockTime(void *pvParameters){
 
    // Read Clock Time
    while(true){
-    synchronizeWait(HW_INITIALIZE| CLOCK_MODE_BIT); // Do Not Read until Read Time Clock Time event is active
-    synchronizeClear(READ_TIME_BIT);
+    synchronizeWait(EVT_HW_INITIALIZE| EVT_CLOCK_MODE); // Do Not Read until Read Time Clock Time event is active
+    synchronizeClear(EVT_READ_TIME);
     rtc->readTime(
         &part->currentTime[0],
         &part->currentTime[1],
         &part->currentTime[2],
         (bool*)(&part->currentTime[3])
     );
-    synchronizeSet(READ_TIME_BIT);
-    synchronizeWait(HW_INITIALIZE| CLOCK_MODE_BIT);
+    synchronizeSet(EVT_READ_TIME);
    }
+   vTaskDelete(readClockTimeHandle);
 }
 
+void setupBLE(void *pvParameters){
+    int i=0;
+    while(++i<=10){
+        initializeBLE();
+        synchronizeSet(EVT_BLE_INITIALIZE);
+    }
+    vTaskDelete(setupBLEHandle);
+}
