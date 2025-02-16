@@ -7,6 +7,11 @@ build*/
 *.launch
 *.swp
 *.swo
+*.json
+
+Clock/
+Clock/.vscode/
+*.json
 
 # Configuration and settings files
 .settings/
