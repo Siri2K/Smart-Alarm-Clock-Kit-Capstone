@@ -1,6 +1,8 @@
 #include "SlideSwitch.h"
+#include <string.h>  // Needed for memset
 
 void initializeSlideSwitch(slide_switch_t *slideSwitch){
+    
     // Configure Slide Switch
     ESP_ERROR_CHECK(configureSlideSwitch(slideSwitch));
 
@@ -13,6 +15,8 @@ void initializeSlideSwitch(slide_switch_t *slideSwitch){
 }
 
 esp_err_t configureSlideSwitch(slide_switch_t *slideSwitch){
+    memset(&(slideSwitch->sliderConfig), 0, sizeof(gpio_config_t));
+
     // Setup Pins used for Slide Switch
     slideSwitch->sliderConfig.pin_bit_mask = 
     (1ULL << TIME_MODE_SWITCH) | 

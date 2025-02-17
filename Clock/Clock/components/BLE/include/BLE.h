@@ -16,8 +16,8 @@
 #define CLOCK_NAME "CLOCK-BLE"
 
 /* Globals */
-extern esp_ble_adv_params_t advertisingParameters;
-extern esp_ble_adv_data_t advertisingData;
+static esp_ble_adv_params_t advertisingParameters;
+static esp_ble_adv_data_t advertisingData;
 
 /* Functions */
 extern void initializeBLE();
@@ -25,6 +25,6 @@ extern void initializeNVS();
 extern void initializeBLEController();
 extern void initializeBluedroid();
 extern void configureBLE();
-extern void GAPEventHandler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param);
+static void GAPEventHandler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param);
 
 #endif

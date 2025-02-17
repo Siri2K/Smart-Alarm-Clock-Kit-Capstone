@@ -18,13 +18,13 @@
 #define RTC_REGISTER_MINUTES 0x02    
 #define RTC_REGISTER_HOURS 0x03
 
-typedef struct real_time_clock_t{
+typedef struct {
     // I2C Configuration
     i2c_config_t rtcConfig;
 
     // Functions 
-    void *(*writeTime)(uint8_t,uint8_t,uint8_t, bool);
-    void *(*readTime)(uint8_t*,uint8_t*,uint8_t*, bool*);
+    //void *(*writeTime)(uint8_t,uint8_t,uint8_t, bool);
+    //void *(*readTime)(uint8_t*,uint8_t*,uint8_t*, bool*);
 }real_time_clock_t;
 
 extern void initializeRTC(real_time_clock_t *rtc);
