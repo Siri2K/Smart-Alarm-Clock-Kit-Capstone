@@ -8,25 +8,24 @@
 
 /* C Library */
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdbool.h>
 
 /* Definitions*/
 #define BUTTON_NODE DT_ALIAS(button) // Red LED Node
+#define BUTTON_PRESSED_MAX 10000 // 10s
 
 typedef enum button_pos_t{
-    BUTTON_ON = (int)0,
-    BUTTON_OFF = (int)0
+    BUTTON_ON = 1,
+    BUTTON_OFF = 0
 }button_pos_t;
 
 
-/* Global variables */
-extern const struct gpio_dt_spec buttonNode;
-
 /* Tasks */
-int initializeButton();
+extern uint8_t initializeButton();
 
-volatile int pressed();
+extern uint8_t pressed();
 
-volatile int64_t calculatePressTime();
+extern int64_t calculatePressTime();
 
 #endif

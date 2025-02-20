@@ -1,97 +1,121 @@
 #include "ecg.h"
 
-const struct device *ECGDev = DEVICE_DT_GET(ECG_NODE);
-uint8_t ECGBuffer[1] = {0x00};
+static const struct device *ECGDev = DEVICE_DT_GET(ECG_NODE);
 
-int connectToECG(){
-    int status = 1;
-    uint8_t value;
-    status &= (i2c_reg_read_byte(ECGDev,ECG_READ_ADDRESS,ECG_INTERRUPT_STATUS,&value) == 0)? 1:0;
-    return status;
-}
+uint8_t initializeECG(){
+    // Status
+    uint8_t status = 0;
 
-int initializeECG(){
-    int status = 1;
-    
-    // Connect to Device
-    status &= connectToECG();
+    // Registers and Values to write into
+    uint8_t resetRegisterAndData[] = {ECG_SYSTEM_CONTROL, 0x01}; // PWR_RDY = 1
 
-    // Reset the device
-    status &= (i2c_reg_write_byte(ECGDev,ECG_WRITE_ADDRESS, ECG_SYSTEM_CONTROL, 0x01))? 1:0; // PWR_RDY = 1
+    uint8_t writeRegisterAndData[] = { 
+        // Configure PPG settings
+        ECG_PPG_CONFIGURATION_1, 0x0B, // PPG1_ADC_RGE[1:0] = 10 , PPG_TINT[1:0] = 11
+        ECG_PPG_CONFIGURATION_2, 0x00, // PPG_SR[4:0] = 00000, SMP_AVE[2:0] = 00
+
+        // Configure LED settings
+        ECG_LED_RANGE_AMPLITUDE_1, 0x0F, // LED2_RGE[1:0] = 11, LED1_RGE[1:0] = 11
+        ECG_LED_PA1, 0x20, // LED1_DRV = 0100 0000
+        ECG_LED_PA2, 0x20, // LED2_DRV = 0100 0000
+
+        // Configure FIFO
+        ECG_FIFO_CONFIGURATION_1, 0x1C, // FIFO_A_FULL = 0001 1100 -> 28 space intterupt & 100 samples
+        ECG_FIFO_CONFIGURATION_2, 0x01, // FIFO_RO = 1
+        ECG_INTERRUPT_ENABLE_1, 0x80, // Enable A_FULL interrupt
+
+        // Configure LED sequence
+        ECG_LED_SEQUENCE_1, 0x23, // LED2 (IR) and LED3 (Red) exposure
+        ECG_LED_SEQUENCE_2, 0x00, // Disable other LEDs
+
+        // Exit shutdown mode
+        ECG_SYSTEM_CONTROL, 0x00, // Clear SHDN bit to start sampling
+    };
+
+    /* Write to ECG*/
+    // Reset ECG
+    status = i2c_write(ECGDev,resetRegisterAndData, sizeof(resetRegisterAndData), ECG_ADDRESS);
     k_sleep(K_MSEC(1)); // 1ms delay for reset
 
-    // Configure PPG settings
-    status &= (i2c_reg_write_byte(ECGDev,ECG_WRITE_ADDRESS, ECG_PPG_CONFIGURATION_1, 0x0B))? 1:0; // PPG1_ADC_RGE[1:0] = 10 , PPG_TINT[1:0] = 11
-    status &= (i2c_reg_write_byte(ECGDev,ECG_WRITE_ADDRESS, ECG_PPG_CONFIGURATION_2, 0x00))? 1:0; // PPG_SR[4:0] = 00000, SMP_AVE[2:0] = 00 
-
-    // Configure LED settings
-    status &= (i2c_reg_write_byte(ECGDev,ECG_WRITE_ADDRESS, ECG_LED_RANGE_AMPLITUDE_1, 0x0F))? 1:0; // LED2_RGE[1:0] = 11, LED1_RGE[1:0] = 11
-    status &= (i2c_reg_write_byte(ECGDev,ECG_WRITE_ADDRESS, ECG_LED_PA1, 0x20))? 1:0; // LED1_DRV = 0100 0000
-    status &= (i2c_reg_write_byte(ECGDev,ECG_WRITE_ADDRESS, ECG_LED_PA2, 0x20))? 1:0; // LED2_DRV = 0100 0000
-
-    // Configure FIFO
-    status &= (i2c_reg_write_byte(ECGDev,ECG_WRITE_ADDRESS, ECG_FIFO_CONFIGURATION_1, 0x1C))? 1:0; // FIFO_A_FULL = 0001 1100 -> 28 space intterupt & 100 samples
-    status &= (i2c_reg_write_byte(ECGDev,ECG_WRITE_ADDRESS, ECG_FIFO_CONFIGURATION_2, 0x01))? 1:0; // FIFO_RO = 1
-    status &= (i2c_reg_write_byte(ECGDev,ECG_WRITE_ADDRESS, ECG_INTERRUPT_ENABLE_1, 0x80))? 1:0; // Enable A_FULL interrupt
-
-    // Configure LED sequence
-    status &= (i2c_reg_write_byte(ECGDev,ECG_WRITE_ADDRESS, ECG_LED_SEQUENCE_1, 0x23))? 1:0; // LED2 (IR) and LED3 (Red) exposure
-    status &= (i2c_reg_write_byte(ECGDev,ECG_WRITE_ADDRESS, ECG_LED_SEQUENCE_2, 0x00))? 1:0; // Disable other LEDs
-
-    // Exit shutdown mode
-    status &= (i2c_reg_write_byte(ECGDev,ECG_WRITE_ADDRESS, ECG_SYSTEM_CONTROL, 0x00))? 1:0; // Clear SHDN bit to start sampling
-
+    // Configure ECG
+    status = i2c_write(ECGDev,writeRegisterAndData, sizeof(writeRegisterAndData), ECG_ADDRESS);
+     
     return status;
 }
 
-uint32_t* getFIFODataSamples(){
-    int status = 1;
-    uint8_t* fifoData;
-    uint32_t* fullSample;
+static uint8_t getFIFODataSamples(uint32_t *data){
+    uint8_t status;
+    uint8_t fifoData[SAMPLE_COUNT*3]; // Gather 100 BP samples
 
-    // Intialize pointers
-    fifoData = (uint8_t*)malloc(3*sizeof(uint8_t));
-    fullSample = (uint32_t*)malloc(SAMPLE_RATE*sizeof(uint32_t));
-
-    // Gather Samples
-    for(int i=0; i<SAMPLE_RATE*3;i++){
-        status &= (i2c_reg_read_byte(ECGDev,ECG_READ_ADDRESS,ECG_FIFO_DATA,&fifoData[i%3]) == 0)? 1:0;
-        // Compile Sample onto full Sample
-        if((i+1)%3 == 0){ // Stop After evey 3 reads, aka 24-bits
-            fullSample[i/3] = fullSample[i]<<16 | fullSample[i-1]<<8 | fullSample[i-2]<<0;
-        }
+    // Read ECG
+    status = i2c_burst_read(ECGDev,ECG_ADDRESS,ECG_FIFO_DATA,fifoData,sizeof(fifoData));
+    if(status < 0){
+        return status;
     }
-    // Free and Return Full Sample
-    free(fifoData);
-    return fullSample; 
+
+    // Combine Data into Samples
+    for(int i=0;i<SAMPLE_COUNT;i++){
+        data[i] = (((fifoData[i*3]&0x03)<<16) | (fifoData[i*3+1]<<8) | fifoData[i*3+2]);
+    }
+    return status;
 }
 
+static void lowPassFilters(uint32_t *data, uint32_t *filtered, int windowSize){
+    for(uint8_t i = 0; i < SAMPLE_COUNT; i++) {
+        int sum = 0;
+        int count = 0;
+        for (int j=i;j>i-windowSize && j>=0; j--) {
+            sum += data[j];
+            count++;
+        }
+        filtered[i] = sum / count;  // Average over the window
+    }
+}
 
-uint8_t countNumberOfPeaks(uint32_t* samples){
-    // HeartBeat Data
-    uint32_t peak = 0;
+static uint8_t findPeaks(uint32_t *data, uint8_t *peak_indices){
     uint8_t peakCount = 0;
-
-    // Calculate Number of peaks
-    for(int i=0; i<SAMPLE_RATE;i++){
-        if(((samples[i] >> 19) & 0x0F) == 0x02){
-            uint32_t oldPeak = peak;
-            peak = (oldPeak < (samples[i] & 0x3FFFF)) ? (samples[i] & 0x3FFFF) : oldPeak;
-            if(peak > oldPeak){
-                peakCount++;
+    for(uint8_t i = 1; i < SAMPLE_COUNT - 1; i++) {
+        if (data[i] > THRESHOLD && data[i] > data[i - 1] && data[i] > data[i + 1]) {
+            if (peakCount == 0 || (i - peak_indices[peakCount - 1]) > MIN_PEAK_DISTANCE) {
+                peak_indices[peakCount++] = i;
             }
         }
     }
     return peakCount;
 }
 
-uint8_t calculateBPM(uint32_t* samples){
-    // Calculate Number of Peaks
-    uint8_t peakCount = countNumberOfPeaks(samples);
-    uint8_t timebetweenPeaks = 1/SAMPLE_RATE;
-    uint8_t bpm = 0;
+static uint8_t calculateBPM(uint8_t *peakIndex, uint8_t peakCount){
+    // Ensure there's enough to sample
+    if(peakCount < 2){
+        return 0;
+    }
+
+    // Count Number of Intervals
+    uint8_t intervalCount=0;
+    for(uint8_t i = 1; i < peakCount; i++) {
+        intervalCount += (peakIndex[i] - peakIndex[i - 1]);
+    }
 
     // Calculate BPM
-    bpm = (peakCount>1) ? 60 * (peakCount-1)/(timebetweenPeaks*peakCount):0;
+    float averageInterval = (float)intervalCount/(peakCount-1);
+    uint8_t bpm = (uint8_t)((60.0f*SAMPLE_RATE)/averageInterval);
+    return bpm;
+}
+
+uint8_t getBPM(){
+    // Variables
+    uint32_t rawData[SAMPLE_COUNT];  // Raw PPG samples
+    uint32_t filteredData[SAMPLE_COUNT];
+    uint8_t peakIndices[SAMPLE_COUNT];
+    uint8_t peakCount=0, bpm=0;
+
+    // Read BPM
+    if(getFIFODataSamples(rawData)){
+        lowPassFilters(rawData,filteredData,5);
+
+        // Calculate BPM
+        peakCount=findPeaks(filteredData,peakIndices);
+        bpm = calculateBPM(peakIndices,peakCount);
+    }
     return bpm;
 }
