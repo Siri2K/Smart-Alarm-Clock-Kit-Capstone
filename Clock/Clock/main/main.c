@@ -136,7 +136,7 @@ void createAllHWTask(void *pvParameters){
     parts_t *part = (parts_t*)pvParameters; 
 
     // Initialize All Components
-    // initializeLCD(parts->lcd);
+    initializeLCD(parts->lcd);
     initializeRTC(part->rtc);
     initializeSlideSwitch(part->slide_switch);
     initializeButtons(part->button);
@@ -192,7 +192,9 @@ void checkControlMode(void *pvParameters){
 void changeCurrentTime(void *pvParameters){
     parts_t *part = (parts_t*)pvParameters;
     button_t *button = part->button;
+    lcd_t *lcd = parts->lcd;
     uint8_t timeIndex = 0;
+    char time_str[6];
     
     // Change CurrentTime
     while(true){
@@ -223,6 +225,17 @@ void changeCurrentTime(void *pvParameters){
             else{
                 part->currentTime[timeIndex] = (part->currentTime[timeIndex] == 0) ? 59 : part->currentTime[timeIndex] - 1; // Allow values from 0 to 59 for minutes or seconds
             }
+            parts->currentTime[timeIndex]--;
+        }
+
+        // Display Time to LCD
+        snprintf(time_str, sizeof(time_str), "%02d:%02d", parts->currentTime[0], parts->currentTime[1]);
+        lcd->display((void*)lcd,lcdCharacters,0,10,time_str);
+        lcd->display((void*)lcd,lcdCharacters,0,20,((parts->currentTime[3] == 0)? "am" : "pm"));
+
+        // Reset index
+        if(timeIndex >=3){
+            timeIndex = 0;
         }
         vTaskDelay(pdMS_TO_TICKS(20)); // Update every 20ms
     }
@@ -233,6 +246,10 @@ void changeAlarmTime(void *pvParameters){
     parts_t *part = (parts_t*)pvParameters;
     button_t *button = part->button;
     uint8_t timeIndex = 0;
+    lcd_t *lcd = parts->lcd;
+    uint8_t *alarmTime = (uint8_t*)malloc(3*sizeof(uint8_t));
+    uint8_t timeIndex = 0;
+    char time_str[6];
     
     // Change Time
      while(true){
@@ -263,6 +280,17 @@ void changeAlarmTime(void *pvParameters){
             else{
                 part->alarmTime[timeIndex] = (part->alarmTime[timeIndex] == 0) ? 59 : part->alarmTime[timeIndex] - 1; // Allow values from 0 to 59 for minutes or seconds
             }
+            alarmTime[timeIndex]--;
+        }
+
+        // Display Time to LCD
+        snprintf(time_str, sizeof(time_str), "%02d:%02d", alarmTime[0], alarmTime[1]);
+        lcd->display((void*)lcd,lcdCharacters,1,10,time_str);
+        lcd->display((void*)lcd,lcdCharacters,1,20,((alarmTime[3] == 0)? "am" : "pm"));
+
+        // Reset index
+        if(timeIndex >=3){
+            timeIndex = 0;
         }
         vTaskDelay(pdMS_TO_TICKS(20)); // Update every 20ms
     }
@@ -273,6 +301,8 @@ void readClockTime(void *pvParameters){
    // Components
    parts_t *part = (parts_t*)pvParameters;
    real_time_clock_t *rtc = part->rtc;
+   lcd_t *lcd = parts->lcd;
+   char time_str[6];
 
    // Read Clock Time
    while(true){
@@ -284,6 +314,12 @@ void readClockTime(void *pvParameters){
         &part->currentTime[2],
         (bool*)(&part->currentTime[3])
     );
+
+    // Display Time to LCD
+    snprintf(time_str, sizeof(time_str), "%02d:%02d", parts->currentTime[0], parts->currentTime[1]);
+    lcd->display((void*)lcd,lcdCharacters,0,10,time_str);
+    lcd->display((void*)lcd,lcdCharacters,0,20,((parts->currentTime[3] == 0)? "am" : "pm"));
+
     synchronizeSet(READ_TIME_BIT);
     
     // Setup Alarm
