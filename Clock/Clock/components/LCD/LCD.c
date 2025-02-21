@@ -7,7 +7,9 @@ void initializeLCD(lcd_t *lcd){
     ESP_ERROR_CHECK(configureLCDDeviceInterface(lcd));
 
     // Store Functions into Structure
-    lcd->send = LCDSend;
+    lcd->send = sendToLCD;
+    lcd->cursor = setCursorToLCD;
+    lcd->display = displayToLCD;
 
     // Initialize Display
     initializeDisplay(lcd);
@@ -20,11 +22,19 @@ void initializeDisplay(lcd_t *lcd){
     gpio_set_level(LCD_RESET_PIN, 1);
 
     // Initialize the display
-    LCDSend(lcd,COMMAND,LCD_CMD_DISPLAY_OFF); // Turn off display
-    LCDSend(lcd,COMMAND,LCD_CMD_SET_PAGE); // Set page to 0
-    LCDSend(lcd,COMMAND,LCD_CMD_SET_COL_LSB); // Set lower column address
-    LCDSend(lcd,COMMAND,LCD_CMD_SET_COL_MSB); // Set higher column address
-    LCDSend(lcd,COMMAND,LCD_CMD_DISPLAY_ON);  // Turn on display
+    sendToLCD(lcd,COMMAND,LCD_DISPLAY_OFF); 
+    sendToLCD(lcd,COMMAND,LCD_ADC_NORMAL); 
+    sendToLCD(lcd,COMMAND,LCD_COMMON_OUTPUT_MODE);
+    sendToLCD(lcd,COMMAND,LCD_NORMAL_DISPLAY_MODE); 
+    sendToLCD(lcd,COMMAND,LCD_DISPLAY_NORMAL_MODE); 
+    sendToLCD(lcd,COMMAND,LCD_BIAS_RATIO); 
+    sendToLCD(lcd,COMMAND,LCD_POWER_CONTROL); 
+    sendToLCD(lcd,COMMAND,LCD_CONTRAST); 
+    sendToLCD(lcd,COMMAND,LCD_SET_CONTRAST); 
+    sendToLCD(lcd,COMMAND,LCD_CONTRAST_LEVEL);  
+    sendToLCD(lcd,COMMAND,LCD_TEMPERATURE_COMPENSATION); 
+    sendToLCD(lcd,COMMAND,LCD_TEMPERATURE_COEFFICIENT);
+    sendToLCD(lcd,COMMAND,LCD_DISPLAY_ON); 
 }
 
 esp_err_t configureLCDPins(lcd_t *lcd){
@@ -56,7 +66,7 @@ esp_err_t configureLCDDeviceInterface(lcd_t *lcd){
     return spi_bus_add_device(SPI2_HOST, &(lcd->lcdSPIDeviceInterfaceConfig), &(lcd->lcdSPIDeviceHandle));
 }
 
-void *LCDSend(void *lcdPtr, lcd_mode mode, uint8_t value){
+void *sendToLCD(void *lcdPtr, lcd_mode mode, uint8_t value){
     // Convert to LCD
     lcd_t* lcd = (lcd_t*)lcdPtr;
     
@@ -74,8 +84,32 @@ void *LCDSend(void *lcdPtr, lcd_mode mode, uint8_t value){
     }
 
     // Transmit value
+    lcd->lcdTransaction.flags = SPI_TRANS_USE_TXDATA;
     lcd->lcdTransaction.length = 8; //  Lenght 
-    lcd->lcdTransaction.tx_buffer = (void*)(&value); // Transmitted Buffer
-    spi_device_polling_transmit(lcd->lcdSPIDeviceHandle, &(lcd->lcdTransaction)); // Transmit Transaction
+    lcd->lcdTransaction.tx_data[0] = value; // Command or Data
+    spi_device_transmit(lcd->lcdSPIDeviceHandle, &lcd->lcdTransaction);
+    return NULL;
+}
+
+void *setCursorToLCD(void *lcdPtr, uint8_t page, uint8_t column){
+    // Set Cursor
+    sendToLCD(lcdPtr,COMMAND, LCD_PAGE_0 | (page & 0x03));
+    sendToLCD(lcdPtr,COMMAND, LCD_COLUMN_MSB | (column >> 4));
+    sendToLCD(lcdPtr,COMMAND, LCD_COLUMN_LSB | (column & 0x0F));
+    return NULL;
+}
+
+void *displayToLCD(void *lcdPtr, const uint8_t *font, uint8_t page, uint8_t start_col, const char *text){
+    // Set the Cursor
+    setCursorToLCD(lcdPtr,page,start_col);
+
+    // Write Text in ASCII
+    while (*text) {
+        uint8_t c = *text++ - 32; // ASCII offset
+        for (int i = 0; i < 8; i++) {
+            sendToLCD(lcdPtr,DATA,font[c * 8 + i]); // Send font data
+        }
+        sendToLCD(lcdPtr,DATA,0x00); // Space between characters
+    }
     return NULL;
 }

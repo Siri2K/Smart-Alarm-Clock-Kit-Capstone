@@ -2,13 +2,18 @@
 #define ACCELEROMETER_H
 
 /* Include Library */
+// Zephyr
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/spi.h>
 #include <zephyr/drivers/gpio.h>
 
-/* Defnitions */
+// C
+#include <stdio.h>
+#include <stdlib.h>
+
+/* Definitions */
 // Accelerometer Registers
 #define ACCEL_ID_REG 0x13
 #define ACCEL_SENS_CONFIG_1 0x15 
@@ -30,18 +35,12 @@
 // Global variables
 typedef struct accelerometer_data_t{
     uint8_t id;
-    int16_t vx,vy,vz;
+    int8_t vx,vy,vz;
 }accelerometer_data_t;
 
-// Setup Devices
-extern const struct device *csDev, *accelDev;
-extern struct spi_config accelConfig;
 
 /* Tasks */
-void initializeAccelerometer(accelerometer_data_t* accelerometer_data);
-void validateConnectiontoAccelerometer();
-uint8_t readID();
-void readAccelerometer(uint8_t reg, uint8_t values[], uint8_t size);
-void readXYZ(accelerometer_data_t* accelerometer_data);
+extern uint8_t initializeAccelerometer(accelerometer_data_t* accelerometer_data);
+extern uint8_t readXYZ(accelerometer_data_t* accelerometer_data);
 
 #endif

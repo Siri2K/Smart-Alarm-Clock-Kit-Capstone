@@ -8,28 +8,24 @@
 
 /* C Library */
 #include <stdio.h>
+#include <stdlib.h>
 
 /* Definitions*/
 #define RED_NODE DT_ALIAS(red_led) // Red LED Node
 #define GREEN_NODE DT_ALIAS(green_led) // Green LED Node
 #define BLUE_NODE DT_ALIAS(blue_led) // Blue LED Node
 
-/* Global variables */
-extern const struct gpio_dt_spec redNode;
-extern const struct gpio_dt_spec greenNode;
-extern const struct gpio_dt_spec blueNode;
-
 typedef enum rgb_colors_t{
-    GREEN,
-    YELLOW,
-    RED
+    GREEN = 0,
+    YELLOW = 1,
+    RED = 2
 }rgb_colors_t;
 
 /* Functions */
-int initializeRGB();
+extern uint8_t initializeRGB();
 
-int turnOffRGB();
+extern uint8_t turnOffRGB();
 
-int turnOnRGB(rgb_colors_t color); 
+extern uint8_t turnOnRGB(rgb_colors_t color); 
 
 #endif
