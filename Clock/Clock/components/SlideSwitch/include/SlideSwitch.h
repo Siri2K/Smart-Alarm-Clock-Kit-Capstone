@@ -6,7 +6,6 @@
 
 /* C Library */
 #include <stdio.h>
-#include <stdbool.h>
 
 /* Definition */
 #define TIME_MODE_SWITCH GPIO_NUM_35
@@ -27,10 +26,7 @@ typedef struct slide_switch_t {
     gpio_config_t sliderConfig;
     
     // Task
-    volatile bool *(*onClockMode)(void);
-    volatile bool *(*onTimeMode)(void);
-    volatile bool *(*onAlarmMode)(void);
-    volatile clock_mode_t *(*mode)(bool,bool,bool);
+    clock_mode_t *(*mode)();
     
 } slide_switch_t;
 
@@ -39,12 +35,6 @@ extern void initializeSlideSwitch(slide_switch_t *slideSwitch);
 
 extern esp_err_t configureSlideSwitch(slide_switch_t *slideSwitch);
 
-extern volatile bool *getClockState();
-
-extern volatile bool *getAlarmState();
-
-extern volatile bool *getTimeState();
-
-extern volatile clock_mode_t *readMode(bool clockOn, bool alarmOn, bool timeOn);
+extern clock_mode_t *readMode();
 
 #endif

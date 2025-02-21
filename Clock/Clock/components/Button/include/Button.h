@@ -7,7 +7,6 @@
 
 /* C Library */
 #include <stdio.h>
-#include <stdbool.h>
 
 /* Definitions */
 #define BUTTON_COUNT 3
@@ -27,18 +26,18 @@ typedef struct button_t {
     gpio_config_t buttonConfig;
     
     // Functions
-    volatile bool *(*pressed)(gpio_num_t);
-    volatile int64_t  *(*pressDuration)(gpio_num_t);
+    uint8_t *(*pressed)(gpio_num_t);
+    int64_t  *(*pressDuration)(gpio_num_t);
     
 } button_t;
 
 
-extern void initializeButtons(button_t *buttons);
+extern void initializeButton(button_t *button, gpio_num_t buttonPin);
 
-extern esp_err_t configureButtons(button_t *buttons);
+extern esp_err_t configureButton(button_t *button, gpio_num_t buttonPin);
 
-extern volatile bool *getPressState(gpio_num_t buttonPin);
+extern uint8_t *getPressState(gpio_num_t buttonPin);
 
-extern volatile int64_t *calculatePressDuration(gpio_num_t buttonPin);
+extern int64_t *calculatePressDuration(gpio_num_t buttonPin);
 
 #endif
