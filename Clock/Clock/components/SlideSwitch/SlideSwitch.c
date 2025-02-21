@@ -5,9 +5,6 @@ void initializeSlideSwitch(slide_switch_t *slideSwitch){
     ESP_ERROR_CHECK(configureSlideSwitch(slideSwitch));
 
     // Store Functions into struct
-    slideSwitch->onClockMode = getClockState;
-    slideSwitch->onAlarmMode = getAlarmState;
-    slideSwitch->onTimeMode = getTimeState;
     slideSwitch->mode = readMode;
 
 }
@@ -31,42 +28,41 @@ esp_err_t configureSlideSwitch(slide_switch_t *slideSwitch){
     return gpio_config(&(slideSwitch->sliderConfig));
 }
 
-volatile bool *getClockState(){
-    bool *state = (bool*)malloc(sizeof(bool));
-    *state = !!(gpio_get_level(CLOCK_MODE_SWITCH));
-    return state;
+static int8_t getClockState(){
+    return gpio_get_level(CLOCK_MODE_SWITCH);
 }
 
-volatile bool *getAlarmState(){
-    bool *state = (bool*)malloc(sizeof(bool));
-    *state = !!(gpio_get_level(ALARM_MODE_SWITCH));
-    return state;
+static int8_t getAlarmState(){
+    return gpio_get_level(ALARM_MODE_SWITCH);
 }
 
-volatile bool *getTimeState(){
-    bool *state = (bool*)malloc(sizeof(bool));
-    *state = !!(gpio_get_level(TIME_MODE_SWITCH));
-    return state;
+static int8_t getTimeState(){
+    return gpio_get_level(TIME_MODE_SWITCH);
 }
 
-volatile clock_mode_t *readMode(bool clockOn, bool alarmOn, bool timeOn){
-    clock_mode_t *clock_mode = (clock_mode_t*)malloc(sizeof(clock_mode_t));
-    *clock_mode = ERROR;
+clock_mode_t *readMode(){
+    // Intialize Clock Mode & Variables
+    static clock_mode_t clock_mode;
+    static uint8_t clockOperationMode[3];
+    clockOperationMode[0] = getClockState();
+    clockOperationMode[1] = getAlarmState();
+    clockOperationMode[2] = getTimeState();
 
     // Find Mode
-    if(!clockOn ^ !alarmOn ^ !timeOn){ // Check if only 1 mode is on
-        if(!clockOn){
-            *clock_mode = CLOCK;
+    if(!clockOperationMode[0] ^ !clockOperationMode[1] ^ !clockOperationMode[2]){ // Check if only 1 mode is on
+        if(!clockOperationMode[0]){
+            clock_mode = CLOCK;
         }
-        if (!alarmOn){
-            *clock_mode = ALARM;
+        if (!clockOperationMode[1]){
+            clock_mode = ALARM;
         }
-        if(!timeOn){
-            *clock_mode = TIME;
+        if(clockOperationMode[2]){
+            clock_mode = TIME;
         }
     }
     else{
-        *clock_mode = ERROR;
+        clock_mode = ERROR;
     }
-    return clock_mode;
+
+    return &clock_mode;
 }

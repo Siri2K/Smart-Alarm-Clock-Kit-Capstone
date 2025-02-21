@@ -5,6 +5,9 @@
 #include "driver/i2c.h"
 #include "driver/gpio.h"
 
+/* C++ Header */
+#include <string.h>
+
 
 /* Defnitions */
 // I2C Configuration
@@ -23,19 +26,19 @@ typedef struct real_time_clock_t{
     i2c_config_t rtcConfig;
 
     // Functions 
-    void *(*writeTime)(uint8_t,uint8_t,uint8_t, bool);
-    void *(*readTime)(uint8_t*,uint8_t*,uint8_t*, bool*);
+    void *(*writeTime)(uint8_t,uint8_t,uint8_t, uint8_t);
+    void *(*readTime)(uint8_t*,uint8_t*,uint8_t*, uint8_t*);
 }real_time_clock_t;
 
 extern void initializeRTC(real_time_clock_t *rtc);
 
-extern void I2CWriteRegister(uint8_t reg, uint8_t value);
+extern void *writeToRTC(uint8_t* timeArray, uint8_t length);
 
-extern uint8_t I2CReadRegister(uint8_t reg);
+extern void *writeToRTC(uint8_t* timeArray, uint8_t length);
 
-extern void *writeTime(uint8_t hour, uint8_t minute, uint8_t second, bool pm);
+extern void *writeTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t pm);
 
-extern void *readTime(uint8_t *hour, uint8_t *minute, uint8_t *second, bool *pm);
+extern void *readTime(uint8_t *hour, uint8_t *minute, uint8_t *second, uint8_t *pm);
 
 #endif 
 

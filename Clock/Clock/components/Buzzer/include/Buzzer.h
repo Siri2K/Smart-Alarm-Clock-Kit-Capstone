@@ -8,7 +8,6 @@
 
 /* C Library */
 #include <stdio.h>
-#include <stdbool.h>
 
 /* Definitions */
 // PWM

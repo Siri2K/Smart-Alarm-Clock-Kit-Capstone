@@ -12,7 +12,12 @@
         "lcd.h": "c",
         "event_groups.h": "c",
         "realtimeclock.h": "c",
-        "chrono": "c"
+        "chrono": "c",
+        "gpio.h": "c",
+        "*.tcc": "c",
+        "string.h": "c",
+        "i2c.h": "c",
+        "i2c_types.h": "c"
     },
     "idf.flashType": "UART",
     "idf.portWin": "COM3"

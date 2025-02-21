@@ -13,89 +13,81 @@ void initializeRTC(real_time_clock_t *rtc){
     i2c_driver_install(I2C_NUM_0,I2C_MODE_MASTER,0,0,0);
 }
 
-void I2CWriteRegister(uint8_t reg, uint8_t value){
-    // Setup Command
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+void *writeToRTC(uint8_t* timeArray, uint8_t length){
+    // Create Time Buffer
+    uint8_t writeBuffer[length+1];
 
-    // Setup Command to Device 
-    /*
-        Process : RTC Write Address -> Register -> Data
-    */
-    i2c_master_start(cmd);
-    i2c_master_write_byte(
-        cmd,
-        (RTC_ADDRESS << 1) | I2C_MASTER_WRITE, // RTC Write Address
-        true
-    ); 
-    i2c_master_write_byte(cmd, reg, true); // Send register address
-    i2c_master_write_byte(cmd, value, true); // Send Data to Write
-    i2c_master_stop(cmd);
+    // Place Starting Register
+    writeBuffer[0] = RTC_REGISTER_SECONDS; // Start at the Second Register
+    memcpy(&writeBuffer[1], timeArray, length);
 
-    // Write to Device & Free Command
-    i2c_master_cmd_begin(I2C_NUM_0, cmd, pdMS_TO_TICKS(1000));
-    i2c_cmd_link_delete(cmd);
-
-}
-
-uint8_t I2CReadRegister(uint8_t reg){
-    // Return Value
-    uint8_t value;
-    
-    // Setup Command
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-
-    // Setup Command to Device 
-    /*
-        Process : 
-        1) Write First : RTC Read Address -> Register
-        2) Read : RTC Read Address -> Register -> Data
-    */
-    i2c_master_start(cmd);
-    i2c_master_write_byte(
-        cmd,
-        (RTC_ADDRESS << 1) | I2C_MASTER_WRITE, // RTC Write Address
-        true
-    ); 
-    i2c_master_write_byte(cmd, reg, true); // Send register address
-
-    i2c_master_start(cmd);
-    i2c_master_write_byte(
-        cmd,
-        (RTC_ADDRESS << 1) | I2C_MASTER_WRITE, // RTC Write Address
-        true
-    ); 
-    i2c_master_read_byte(cmd, &value, I2C_MASTER_NACK); // Read Data from Register
-    i2c_master_stop(cmd);
-
-    // Execute and Free Command
-    i2c_master_cmd_begin(I2C_NUM_0, cmd, pdMS_TO_TICKS(1000));
-    i2c_cmd_link_delete(cmd);
-
-    return value;
-}
-
-void *writeTime(uint8_t hour, uint8_t minute, uint8_t second, bool pm){
-    uint8_t am_or_pm = 0x20; // 0010 0000
-    
-    I2CWriteRegister(RTC_REGISTER_SECONDS, second); // Seconds
-    I2CWriteRegister(RTC_REGISTER_MINUTES, minute); // Minutes
-    I2CWriteRegister(
-        RTC_REGISTER_HOURS, 
-        (pm == true)? hour|am_or_pm : hour&am_or_pm
-    ); // Hours
+    // Write to Device
+    ESP_ERROR_CHECK(
+        i2c_master_write_to_device(
+            I2C_NUM_0,
+            RTC_ADDRESS,
+            writeBuffer,
+            length+1,
+            pdMS_TO_TICKS(1000)
+        )
+    );
 
 
     return NULL;
 }
 
-void *readTime(uint8_t *hour, uint8_t *minute, uint8_t *second, bool *pm){
-    *second = I2CReadRegister(RTC_REGISTER_SECONDS);
-    *minute = I2CReadRegister(RTC_REGISTER_MINUTES);
-    *hour = I2CReadRegister(RTC_REGISTER_HOURS); 
+void *readToRTC(uint8_t* timeArray, uint8_t length){
+    // Place Starting Register
+    uint8_t startRegister = RTC_REGISTER_SECONDS; // Start at the Second Register
 
-    // Check for pm
-    *pm = ((*hour & 0x20) >> 5) ? true : false;
-    *hour &= 0x1F; // 0001 1111
+    // Go to Device
+    ESP_ERROR_CHECK(
+        i2c_master_write_to_device(
+            I2C_NUM_0,
+            RTC_ADDRESS,
+            &startRegister,
+            1,
+            pdMS_TO_TICKS(1000)
+        )
+    );
+
+    // Read to Device
+    ESP_ERROR_CHECK(
+        i2c_master_read_from_device(
+            I2C_NUM_0,
+            RTC_ADDRESS,
+            timeArray,
+            length,
+            pdMS_TO_TICKS(1000)
+        )
+    );
+
+    return NULL;
+}
+
+void *writeTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t pm){
+    // Set Hour
+    hour &= 0x0F; // 0000 1111 --> Set Hour
+    hour |= 0x40; // 0100 0000 --> Make sure it is 12 hour format
+    hour |= (pm == 1)?0x20:0x00; // 0010 0000 --> Check for AM or PM
+
+    // Write to Array
+    uint8_t timeArray[] = {second,minute,hour};
+    writeToRTC(timeArray, 3);
+
+    return NULL;
+}
+
+void *readTime(uint8_t *hour, uint8_t *minute, uint8_t *second, uint8_t *pm){
+    // Read from Array
+    uint8_t timeArray[3] = {0};
+    readToRTC(timeArray,3);
+
+    // Set Seconds and Minutes
+    *second = timeArray[0];
+    *minute = timeArray[1];
+    *hour = timeArray[2] & 0x0F;
+    *pm = (timeArray[2] & 0x20) >> 5;
 
     return NULL;
 }
