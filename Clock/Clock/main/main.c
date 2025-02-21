@@ -1,9 +1,9 @@
 /* Components Headers */
-//#include "Button.h"
-//#include "Buzzer.h"
-//#include "LCD.h"
-//#include "RealTimeClock.h"
-//#include "SlideSwitch.h"
+#include "Button.h"
+#include "Buzzer.h"
+#include "LCD.h"
+#include "RealTimeClock.h"
+#include "SlideSwitch.h"
 
 /* Services Headers */
 #include "BLE.h"
@@ -113,7 +113,7 @@ void ControlTask(void *pvParameters){
     eventGroup = xEventGroupCreate();
     
     // Clear All Bits
-    synchronizeClear(EVT_HW_INITIALIZE|EVT_CLOCK_MODE|EVT_TIME_MODE|EVT_ALARM_MODE|EVT_READ_TIME|EVT_BLE_INITIALIZE);
+    //synchronizeClear(EVT_HW_INITIALIZE|EVT_CLOCK_MODE|EVT_TIME_MODE|EVT_ALARM_MODE|EVT_READ_TIME|EVT_BLE_INITIALIZE);
 
     /* Create All Tasks */
     // Initalize All HW
@@ -157,11 +157,11 @@ void createAllHWTask(void *pvParameters){
     //parts_t *part = (parts_t*)pvParameters; 
 
     // Initialize All Components
-    initializeLCD(parts->lcd);
-    initializeRTC(part->rtc);
-    initializeSlideSwitch(part->slide_switch);
-    initializeButtons(part->button);
-    initializeBuzzer(parts->buzzer);
+   // initializeLCD(parts->lcd);
+   // initializeRTC(part->rtc);
+   // initializeSlideSwitch(part->slide_switch);
+   // initializeButtons(part->button);
+   // initializeBuzzer(parts->buzzer);
 
     // Initialize Time
     //part->currentTime = (uint8_t*) malloc(4*sizeof(uint8_t));
@@ -213,11 +213,11 @@ void checkControlMode(void *pvParameters){
 }
 
 void changeCurrentTime(void *pvParameters){
-    parts_t *part = (parts_t*)pvParameters;
+   /* parts_t *part = (parts_t*)pvParameters;
     button_t *button = part->button;
     lcd_t *lcd = parts->lcd;
     uint8_t timeIndex = 0;
-    char time_str[6];
+    char time_str[6];*/
     
     // Change CurrentTime
     /*while(true){
@@ -320,7 +320,7 @@ void changeCurrentTime(void *pvParameters){
     
 }
 
-/*void readClockTime(void *pvParameters){
+void readClockTime(void *pvParameters){
    // Components
    parts_t *part = (parts_t*)pvParameters;
    real_time_clock_t *rtc = part->rtc;
