@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#1E1E2E">
+
+
+    <!-- Title-->
+    <TextView
+        android:id="@+id/welcomeText2"
+        android:layout_width="225dp"
+        android:layout_height="50dp"
+        android:fontFamily="sans-serif-medium"
+        android:text="Welcome Onboard"
+        android:textAlignment="center"
+        android:textColor="#FF6B6B"
+        android:textSize="24sp"
+        android:typeface="normal"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.023" />
+
+    <!--Enter information text-->
+    <TextView
+        android:id="@+id/welcomeText3"
+        android:layout_width="355dp"
+        android:layout_height="44dp"
+        android:fontFamily="sans-serif"
+        android:text="Please Enter Your Information"
+        android:textAlignment="center"
+        android:textColor="#FF6B6B"
+        android:textSize="24sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/welcomeText2"
+        app:layout_constraintVertical_bias="0.02" />
+
+
+    <!--Enter Full name-->
+    <EditText
+        android:id="@+id/nameInput"
+        android:layout_width="350dp"
+        android:layout_height="52dp"
+        android:layout_marginTop="36dp"
+        android:background="@drawable/edit_text_background"
+        android:hint="Enter your full name"
+        android:inputType="textPersonName"
+        android:padding="12dp"
+        android:textColor="#FFFFFF"
+        android:textColorHint="#FF6B6B"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.393"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/welcomeText3"
+        app:layout_constraintVertical_bias="0.0" />
+
+    <!-- Enter username-->
+    <EditText
+        android:id="@+id/usernameInput"
+        android:layout_width="350dp"
+        android:layout_height="52dp"
+
+        android:layout_marginTop="17dp"
+        android:layout_marginBottom="380dp"
+        android:background="@drawable/edit_text_background"
+        android:hint="Enter Your Username"
+        android:padding="12dp"
+        android:textColor="#FFFFFF"
+
+        android:textColorHint="#FF6B6B"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.393"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/nameInput"
+        app:layout_constraintVertical_bias="0.0" />
+
+    <!--Enter A Password-->
+
+
+    <!--Password Confirmation-->
+
+
+    <Spinner
+        android:id="@+id/ageSpinner"
+        android:layout_width="150dp"
+        android:layout_height="65dp"
+        android:layout_marginTop="32dp"
+        android:layout_weight="1"
+        android:background="@drawable/edit_text_background"
+        android:padding="12dp"
+        android:popupBackground="#1E1E2E"
+        android:spinnerMode="dropdown"
+        android:textColor="#FF6B6B"
+        android:visibility="visible"
+        app:layout_constraintEnd_toStartOf="@+id/genderSpinner"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/usernameInput" />
+
+    <Spinner
+        android:id="@+id/genderSpinner"
+        android:layout_width="150dp"
+        android:layout_height="65dp"
+        android:layout_marginTop="32dp"
+        android:layout_weight="1"
+        android:background="@drawable/edit_text_background"
+        android:entries="@array/gender_array"
+        android:padding="12dp"
+        android:popupBackground="#1E1E2E"
+        android:spinnerMode="dropdown"
+        android:textColor="#FF6B6B"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/ageSpinner"
+        app:layout_constraintTop_toBottomOf="@+id/usernameInput" />
+
+    <Spinner
+        android:id="@+id/conditionSpinner"
+        android:layout_width="332dp"
+        android:layout_height="65dp"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/edit_text_background"
+        android:padding="12dp"
+        android:popupBackground="#2E2E38"
+        android:spinnerMode="dropdown"
+        android:textColor="#FF6B6B"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.49"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/genderSpinner"
+        app:layout_constraintVertical_bias="0.07" />
+
+    <Button
+        android:id="@+id/NextButton"
+        android:layout_width="313dp"
+        android:layout_height="55dp"
+        android:layout_marginHorizontal="32dp"
+        android:layout_marginTop="29dp"
+        android:backgroundTint="#FF6B6B"
+        android:text="Next"
+        android:textColor="#FFFFFF"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.391"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/conditionSpinner"
+        app:layout_constraintVertical_bias="0.0" />
+
+    <TextView
+        android:id="@+id/LoginText"
+        android:layout_width="219dp"
+        android:layout_height="48dp"
+        android:layout_marginTop="16dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:text="Already have an account? Sign in."
+        android:textColor="#FF6B6B"
+        android:textSize="14sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.854"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/NextButton"
+        app:layout_constraintVertical_bias="0.073" />
+</androidx.constraintlayout.widget.ConstraintLayout>
+
+
