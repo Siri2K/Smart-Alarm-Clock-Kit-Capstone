@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/nav_home"
+        android:icon="@drawable/home"
+        android:title="Home" />
+
+    <item
+        android:id="@+id/nav_ConnectToDevice"
+        android:icon="@drawable/device"
+        android:title="Connection" />
+
+    <item
+        android:id="@+id/nav_alarm"
+        android:icon="@drawable/alarm"
+        android:title="Alarms" />
+
+</menu>
