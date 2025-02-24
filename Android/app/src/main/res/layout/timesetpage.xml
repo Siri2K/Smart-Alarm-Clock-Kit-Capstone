@@ -1,6 +1,191 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="#1E1E2E"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context=".TimeSetPage">
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+    <!-- Back/Cancel Button -->
+    <ImageButton
+        android:id="@+id/btn_cancel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:src="@android:drawable/ic_menu_revert"
+        app:tint="#FFFFFF"
+        android:contentDescription="Cancel"
+        android:layout_alignParentStart="true"/>
+
+    <!-- Title -->
+    <TextView
+        android:id="@+id/tv_set_alarm_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Set Alarm"
+        android:textColor="#FF6B6B"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="16dp"/>
+
+    <!-- Time Picker -->
+    <TimePicker
+        android:id="@+id/time_picker"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_below="@id/tv_set_alarm_title"
+        android:layout_marginTop="20dp"
+        android:timePickerMode="spinner"
+        android:theme="@style/TimePickerStyle"/>
+
+
+
+    <!-- Selected Days Text -->
+    <TextView
+        android:id="@+id/tv_selected_days"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Selected Days"
+        android:textColor="#FFFFFF"
+        android:textSize="14sp"
+        android:layout_below="@id/time_picker"
+        android:layout_marginTop="10dp"
+        android:layout_centerHorizontal="true"/>
+
+    <!-- Days Selection -->
+    <LinearLayout
+        android:id="@+id/days_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/tv_selected_days"
+        android:layout_marginTop="10dp"
+        android:padding="16dp"
+        android:background="#24243E"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:weightSum="7">
+
+        <TextView
+            android:id="@+id/btn_sun"
+            android:text="S"
+            style="@style/AlarmDaySelector"/>
+
+        <TextView
+            android:id="@+id/btn_mon"
+            android:text="M"
+            style="@style/AlarmDaySelector"/>
+
+        <TextView
+            android:id="@+id/btn_tue"
+            android:text="T"
+            style="@style/AlarmDaySelector"/>
+
+        <TextView
+            android:id="@+id/btn_wed"
+            android:text="W"
+            style="@style/AlarmDaySelector"/>
+
+        <TextView
+            android:id="@+id/btn_thu"
+            android:text="T"
+            style="@style/AlarmDaySelector"/>
+
+        <TextView
+            android:id="@+id/btn_fri"
+            android:text="F"
+            style="@style/AlarmDaySelector"/>
+
+        <TextView
+            android:id="@+id/btn_sat"
+            android:text="S"
+            style="@style/AlarmDaySelector"/>
+    </LinearLayout>
+
+    <!-- Alarm Sound & Vibration Settings -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/days_container"
+        android:layout_marginTop="20dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:orientation="vertical">
+
+        <!-- Alarm Sound Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_gravity="center"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/tv_alarm_sound"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Alarm Sound"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"/>
+
+            <Switch
+                android:id="@+id/switch_alarm_sound"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+        </LinearLayout>
+
+        <!-- Vibrate Row (Now Properly Positioned Below Alarm Sound) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_gravity="center"
+            android:gravity="center_vertical"
+            android:layout_marginTop="10dp">
+
+            <TextView
+                android:id="@+id/tv_vibrate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Vibrate"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"/>
+
+            <Switch
+                android:id="@+id/switch_vibrate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Save and Cancel Buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:padding="16dp">
+
+        <Button
+            android:id="@+id/btn_cancel_set"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cancel"
+            android:textColor="#FF6B6B"
+            android:backgroundTint="@android:color/transparent"
+            android:layout_marginEnd="20dp"/>
+
+        <Button
+            android:id="@+id/btn_save"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Save"
+            android:textColor="#FF6B6B"
+            android:backgroundTint="@android:color/transparent"/>
+    </LinearLayout>
+
+</RelativeLayout>
