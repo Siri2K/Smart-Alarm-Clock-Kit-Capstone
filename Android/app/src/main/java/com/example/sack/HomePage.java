@@ -36,7 +36,7 @@ public class HomePage extends AppCompatActivity {
             startActivity(new Intent(HomePage.this, HomePage.class));
             return true;
         } else if (id == R.id.nav_alarm) {
-            startActivity(new Intent(HomePage.this, AlarmList.class));
+            startActivity(new Intent(HomePage.this, AlarmSetPage.class));
             return true;
         } else if (id == R.id.nav_ConnectToDevice) {
             startActivity(new Intent(HomePage.this, ConnectToDevice.class));

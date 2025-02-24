@@ -12,7 +12,7 @@ import java.util.ArrayList;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "Alarm_DB";
-    private static final int DATABASE_VERSION = 2;
+    private static final int DATABASE_VERSION = 6;
 
     // Table Names
     private static final String TABLE_HEARTBEAT = "Heartbeat_sensor";
@@ -73,7 +73,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                     COLUMN_ALARM_TIME + " TEXT NOT NULL, " +
                     COLUMN_ALARM_LABEL + " TEXT, " +
                     COLUMN_ALARM_STATUS + " INTEGER DEFAULT 1, " +
-                    "repeat_days TEXT, " +
+                    COLUMN_REPEAT_DAYS + "repeat_days TEXT, " +
                     "FOREIGN KEY (" + COLUMN_USER_REF_ID + ") REFERENCES " + TABLE_USERS + "(" + COLUMN_USER_ID + "));";
 
 
@@ -94,27 +94,13 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         if (oldVersion < 2) {
-            // Add missing "full_name" column
             db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_FULL_NAME + " TEXT NOT NULL DEFAULT ''");
-        }
-        if (oldVersion < 3) {
-            db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_AGE + " INTEGER DEFAULT 0");
-            db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_Gender + " TEXT DEFAULT ''");
-        }
-        if (oldVersion < 4) {
-            db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_CONDITION + " TEXT DEFAULT ''");
-        }
-        if (oldVersion < 5) {
-            db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_SECURITY_QUESTION + " TEXT DEFAULT ''");
-            db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_SECURITY_ANSWER + " TEXT DEFAULT ''");
+            db.execSQL("ALTER TABLE " + TABLE_ALARMS + " ADD COLUMN " + COLUMN_REPEAT_DAYS + " TEXT DEFAULT ''");
         }
         if (oldVersion < 6) {
-            // Fix: Add repeat_days column if missing
             db.execSQL("ALTER TABLE " + TABLE_ALARMS + " ADD COLUMN repeat_days TEXT DEFAULT ''");
         }
     }
-
-
 
 
     // Insert User
