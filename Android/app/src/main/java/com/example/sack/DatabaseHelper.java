@@ -1,10 +1,13 @@
 package com.example.sack;
 
+import android.annotation.SuppressLint;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+
+import java.util.ArrayList;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
 
@@ -37,6 +40,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String COLUMN_ALARM_TIME = "alarm_time";
     private static final String COLUMN_ALARM_LABEL = "alarm_label";
     private static final String COLUMN_ALARM_STATUS = "alarm_status"; // 0 = Disabled, 1 = Enabled
+    private static final String COLUMN_REPEAT_DAYS = "repeat_days";
+
 
     // Users Table Creation
     private static final String CREATE_USERS_TABLE =
@@ -65,10 +70,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             "CREATE TABLE " + TABLE_ALARMS + " (" +
                     COLUMN_ALARM_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
                     COLUMN_USER_REF_ID + " INTEGER NOT NULL, " +
-                    COLUMN_ALARM_TIME + " INTEGER NOT NULL, " +
+                    COLUMN_ALARM_TIME + " TEXT NOT NULL, " +
                     COLUMN_ALARM_LABEL + " TEXT, " +
                     COLUMN_ALARM_STATUS + " INTEGER DEFAULT 1, " +
+                    "repeat_days TEXT, " +
                     "FOREIGN KEY (" + COLUMN_USER_REF_ID + ") REFERENCES " + TABLE_USERS + "(" + COLUMN_USER_ID + "));";
+
+
+
+
 
     public DatabaseHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -84,24 +94,27 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         if (oldVersion < 2) {
-            // Add the "full_name" column
+            // Add missing "full_name" column
             db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_FULL_NAME + " TEXT NOT NULL DEFAULT ''");
         }
         if (oldVersion < 3) {
-            // Add the "age" and "gender" columns
             db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_AGE + " INTEGER DEFAULT 0");
             db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_Gender + " TEXT DEFAULT ''");
         }
         if (oldVersion < 4) {
-            // Add the "condition" column
             db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_CONDITION + " TEXT DEFAULT ''");
         }
         if (oldVersion < 5) {
-            // Add the "security_question" and "security_answer" columns
             db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_SECURITY_QUESTION + " TEXT DEFAULT ''");
             db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_SECURITY_ANSWER + " TEXT DEFAULT ''");
         }
+        if (oldVersion < 6) {
+            // Fix: Add repeat_days column if missing
+            db.execSQL("ALTER TABLE " + TABLE_ALARMS + " ADD COLUMN repeat_days TEXT DEFAULT ''");
+        }
     }
+
+
 
 
     // Insert User
@@ -145,21 +158,60 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     // Insert Alarm
-    public long insertAlarm(int userId, long timeInMinutes, String label) {
+    public long insertAlarm(int userId, String time, String label, String repeatDays) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(COLUMN_USER_REF_ID, userId);
-        values.put(COLUMN_ALARM_TIME, timeInMinutes);
+        values.put(COLUMN_ALARM_TIME, time);
         values.put(COLUMN_ALARM_LABEL, label);
+        values.put(COLUMN_REPEAT_DAYS, repeatDays);
         values.put(COLUMN_ALARM_STATUS, 1);
-        return db.insert(TABLE_ALARMS, null, values);
+
+        long result = db.insert(TABLE_ALARMS, null, values);
+
+        if (result > 0) {
+            System.out.println("DEBUG: Alarm inserted successfully in database - ID: " + result);
+        } else {
+            System.out.println("DEBUG: Alarm insertion failed.");
+        }
+
+        return result;
     }
 
+
+
     // Get All Alarms
-    public Cursor getAllAlarms() {
+    public ArrayList<AlarmModel> getAllAlarms() {
+        ArrayList<AlarmModel> alarmList = new ArrayList<>();
         SQLiteDatabase db = this.getReadableDatabase();
-        return db.rawQuery("SELECT * FROM " + TABLE_ALARMS, null);
+
+        Cursor cursor = db.rawQuery("SELECT * FROM " + TABLE_ALARMS, null);
+
+        if (cursor.moveToFirst()) {
+            do {
+                @SuppressLint("Range") int id = cursor.getInt(cursor.getColumnIndex(COLUMN_ALARM_ID));
+                @SuppressLint("Range") int userId = cursor.getInt(cursor.getColumnIndex(COLUMN_USER_REF_ID));
+                @SuppressLint("Range") String time = cursor.getString(cursor.getColumnIndex(COLUMN_ALARM_TIME));
+                @SuppressLint("Range") String label = cursor.getString(cursor.getColumnIndex(COLUMN_ALARM_LABEL));
+                @SuppressLint("Range") boolean isEnabled = cursor.getInt(cursor.getColumnIndex(COLUMN_ALARM_STATUS)) == 1;
+                @SuppressLint("Range") String repeatDays = cursor.getString(cursor.getColumnIndex(COLUMN_REPEAT_DAYS));
+
+                AlarmModel alarm = new AlarmModel(id, userId, time, label, isEnabled, repeatDays);
+                alarmList.add(alarm);
+
+                // Debugging: Log retrieved alarm
+                System.out.println("DEBUG: Retrieved Alarm - ID: " + id + ", Time: " + time + ", Repeat Days: " + repeatDays);
+            } while (cursor.moveToNext());
+        } else {
+            System.out.println("DEBUG: No alarms found in database!");
+        }
+
+        cursor.close();
+        return alarmList;
     }
+
+
+
 
     // Update Alarm
     public boolean updateAlarm(int alarmId, long newTime, String newLabel) {
@@ -172,13 +224,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     // Enable or Disable Alarm
-    public boolean updateAlarmStatus(int alarmId, boolean isEnabled) {
+    public void updateAlarmStatus(int alarmId, boolean isEnabled) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(COLUMN_ALARM_STATUS, isEnabled ? 1 : 0);
-        int rowsAffected = db.update(TABLE_ALARMS, values, COLUMN_ALARM_ID + "=?", new String[]{String.valueOf(alarmId)});
-        return rowsAffected > 0;
+
+        db.update(TABLE_ALARMS, values, COLUMN_ALARM_ID + "=?", new String[]{String.valueOf(alarmId)});
+        db.close();
     }
+
 
     // Delete Alarm
     public boolean deleteAlarm(int alarmId) {
@@ -256,5 +310,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         cursor.close();
         return userId;
     }
+
 
 }

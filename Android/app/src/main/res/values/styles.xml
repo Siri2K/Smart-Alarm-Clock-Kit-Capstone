@@ -1,0 +1,31 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!--  Theme for the entire app (if needed)  -->
+    <style name="Theme.MyApp" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+        <!--  Customize your theme  -->
+    </style>
+    <!--  Style for Day Selector in TimeSetPage  -->
+    <style name="AlarmDaySelector">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:textColor">#B0B0B0</item>
+        <!--  Default Gray  -->
+        <item name="android:background">?attr/selectableItemBackgroundBorderless</item>
+        <item name="android:padding">8dp</item>
+    </style>
+    <style name="CustomTimePickerStyle" parent="Theme.MaterialComponents.Light.DarkActionBar">
+        <item name="android:timePickerStyle">@style/TimePickerStyle</item>
+    </style>
+    <style name="TimePickerStyle" parent="ThemeOverlay.MaterialComponents.TimePicker">
+        <item name="android:textColorPrimary">#FFFFFF</item>
+        <item name="android:textColorSecondary">#FFFFFF</item>
+        <item name="android:textColorTertiary">#FFFFFF</item>
+        <item name="android:colorAccent">#FFFFFF</item>
+        <!--  Fixes the AM/PM selection  -->
+        <item name="android:editTextColor">#FFFFFF</item>
+        <!--  Ensures white text  -->
+        <item name="android:textColorHint">#FFFFFF</item>
+    </style>
+</resources>
