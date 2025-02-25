@@ -28,6 +28,18 @@ public class HomePage extends AppCompatActivity {
         } else {
             welcomeMessage.setText("Welcome User");
         }
+
+        // Example: Simulating multiple data points coming from ESP32
+        String[] sensorDataArray = {
+                "80,2025-02-24 13:00:00",
+                "82,2025-02-24 13:01:00",
+                "75,2025-02-24 13:02:00"
+        };
+
+        for (String data : sensorDataArray) {
+            dbHelper.insertSensorData("testuser", data); // Replace "testuser" with actual username
+        }
+
     }
 
     private boolean onNavigationItemSelected(@NonNull MenuItem item) {
@@ -40,6 +52,9 @@ public class HomePage extends AppCompatActivity {
             return true;
         } else if (id == R.id.nav_ConnectToDevice) {
             startActivity(new Intent(HomePage.this, ConnectToDevice.class));
+            return true;
+        }else if (id == R.id.nav_profile) {
+            startActivity(new Intent(HomePage.this, ProfileActivity.class));
             return true;
         }
         return false;
