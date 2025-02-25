@@ -129,11 +129,13 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     // Insert Sensor Data
-    public long insertSensorData(int userId, double sensorData) {
+    public long insertSensorData(int userId, double sensorData, long timestamp) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(COLUMN_USER_REF_ID, userId);
         values.put(COLUMN_SENSOR_DATA, sensorData);
+        values.put(COLUMN_TIMESTAMP, timestamp); // Insert the timestamp
+
         return db.insert(TABLE_HEARTBEAT, null, values);
     }
 
