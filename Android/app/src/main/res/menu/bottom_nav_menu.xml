@@ -16,4 +16,9 @@
         android:icon="@drawable/alarm"
         android:title="Alarms" />
 
+    <item
+        android:id="@+id/nav_profile"
+        android:icon="@drawable/profile"
+        android:title="Profile" />
+
 </menu>

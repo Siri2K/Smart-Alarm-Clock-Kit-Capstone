@@ -311,5 +311,35 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return userId;
     }
 
+    public UserModel getUserProfile(String username) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT * FROM user_data WHERE username=?", new String[]{username});
+        if (cursor.moveToFirst()) {
+            @SuppressLint("Range") UserModel user = new UserModel(
+                    cursor.getString(cursor.getColumnIndex("full_name")),
+                    cursor.getString(cursor.getColumnIndex("username")),
+                    cursor.getInt(cursor.getColumnIndex("age")),
+                    cursor.getString(cursor.getColumnIndex("password")),
+                    cursor.getString(cursor.getColumnIndex("security_question")),
+                    cursor.getString(cursor.getColumnIndex("security_answer"))
+            );
+            cursor.close();
+            return user;
+        }
+        cursor.close();
+        return null;
+    }
+
+
+    public boolean updateUserProfile(int userId, String fullName, String username, int age, String password) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put("full_name", fullName);
+        values.put("username", username);
+        values.put("age", age);
+        values.put("password", password);
+        return db.update("user_data", values, "user_id=?", new String[]{String.valueOf(userId)}) > 0;
+    }
+
 
 }

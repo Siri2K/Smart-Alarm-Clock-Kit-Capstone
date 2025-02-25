@@ -10,6 +10,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.ItemTouchHelper;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
@@ -18,11 +19,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Locale;
 
-import androidx.recyclerview.widget.ItemTouchHelper;
-import androidx.recyclerview.widget.RecyclerView;
-
 public class AlarmSetPage extends AppCompatActivity {
-    private TextView tvAlarmDate;
+    private TextView tvAlarmDate, tvNoAlarms; // Added tvNoAlarms for empty state
     private RecyclerView recyclerAlarmList;
     private FloatingActionButton btnAddAlarm;
     private AlarmAdapter alarmAdapter;
@@ -36,6 +34,7 @@ public class AlarmSetPage extends AppCompatActivity {
 
         // Initialize UI elements
         tvAlarmDate = findViewById(R.id.tv_alarm_date);
+        tvNoAlarms = findViewById(R.id.tv_no_alarms); // Get empty state message
         recyclerAlarmList = findViewById(R.id.recycler_alarm_list);
         btnAddAlarm = findViewById(R.id.btn_add_alarm);
 
@@ -58,11 +57,6 @@ public class AlarmSetPage extends AppCompatActivity {
             startActivityForResult(intent, 1);
         });
 
-        recyclerAlarmList = findViewById(R.id.recycler_alarm_list);
-        alarmList = databaseHelper.getAllAlarms();
-        alarmAdapter = new AlarmAdapter(this, alarmList);
-        recyclerAlarmList.setAdapter(alarmAdapter);
-
         // Enable swipe-to-delete
         enableSwipeToDelete();
     }
@@ -77,15 +71,20 @@ public class AlarmSetPage extends AppCompatActivity {
         alarmList.clear();  // Clear old alarms
         alarmList.addAll(databaseHelper.getAllAlarms());  // Fetch latest alarms
 
+        // Check if alarm list is empty
         if (alarmList.isEmpty()) {
-            System.out.println("DEBUG: No alarms found in the database.");
+            tvNoAlarms.setVisibility(View.VISIBLE); // Show "Create your first alarm now!"
+            recyclerAlarmList.setVisibility(View.GONE); // Hide RecyclerView
+            System.out.println("DEBUG: No alarms found, showing empty state message.");
         } else {
+            tvNoAlarms.setVisibility(View.GONE); // Hide empty message
+            recyclerAlarmList.setVisibility(View.VISIBLE); // Show RecyclerView
             for (AlarmModel alarm : alarmList) {
                 System.out.println("DEBUG: Loaded Alarm - Time: " + alarm.getTime() + ", Repeat: " + alarm.getRepeatDays());
             }
         }
 
-        // Force RecyclerView update by setting a new adapter
+        // Update RecyclerView
         alarmAdapter = new AlarmAdapter(this, alarmList);
         recyclerAlarmList.setAdapter(alarmAdapter);
         alarmAdapter.notifyDataSetChanged();
@@ -104,7 +103,7 @@ public class AlarmSetPage extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         System.out.println("DEBUG: onResume triggered, refreshing alarms...");
-        loadAlarms();  // Force UI refresh when returning to the page
+        loadAlarms();  // Refresh alarms on return to this screen
     }
 
     private void enableSwipeToDelete() {
@@ -117,7 +116,16 @@ public class AlarmSetPage extends AppCompatActivity {
             @Override
             public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
                 int position = viewHolder.getAdapterPosition();
-                alarmAdapter.removeAlarm(position); // Remove from UI & DB
+                databaseHelper.deleteAlarm(alarmList.get(position).getId()); // Remove from DB
+                alarmList.remove(position); // Remove from list
+                alarmAdapter.notifyItemRemoved(position);
+
+                // Check if the list is empty after deleting an alarm
+                if (alarmList.isEmpty()) {
+                    tvNoAlarms.setVisibility(View.VISIBLE);
+                    recyclerAlarmList.setVisibility(View.GONE);
+                }
+
                 Toast.makeText(AlarmSetPage.this, "Alarm Deleted", Toast.LENGTH_SHORT).show();
             }
         };

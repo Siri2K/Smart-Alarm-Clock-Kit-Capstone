@@ -7,20 +7,22 @@ import android.view.MenuItem;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 public class HomePage extends AppCompatActivity {
+
     @SuppressLint("SetTextI18n")
     @Override
-    protected void onCreate(@Nullable Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.homepage);
+
         TextView welcomeMessage = findViewById(R.id.welcomeMessage);
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
         bottomNavigationView.setOnItemSelectedListener(this::onNavigationItemSelected);
+
         String username = getIntent().getStringExtra("USERNAME");
         DatabaseHelper dbHelper = new DatabaseHelper(this);
         if (username != null && !username.isEmpty()) {
@@ -36,10 +38,15 @@ public class HomePage extends AppCompatActivity {
             startActivity(new Intent(HomePage.this, HomePage.class));
             return true;
         } else if (id == R.id.nav_alarm) {
-            startActivity(new Intent(HomePage.this, AlarmList.class));
+            startActivity(new Intent(HomePage.this, AlarmSetPage.class));
             return true;
         } else if (id == R.id.nav_ConnectToDevice) {
             startActivity(new Intent(HomePage.this, ConnectToDevice.class));
+            return true;
+        } else if (id == R.id.nav_profile) {  // Profile Page
+            Intent intent = new Intent(HomePage.this, ProfileActivity.class);
+            intent.putExtra("USERNAME", getIntent().getStringExtra("USERNAME")); // Pass username
+            startActivity(intent);
             return true;
         }
         return false;
