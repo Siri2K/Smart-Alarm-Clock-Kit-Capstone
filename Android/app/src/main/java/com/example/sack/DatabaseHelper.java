@@ -29,11 +29,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String COLUMN_AGE = "age";
     private static final String COLUMN_Gender = "gender";
     private static final String COLUMN_CONDITION = "condition";
-
     // Heartbeat Table Columns
     private static final String COLUMN_SENSOR_ID = "sensor_id";
     private static final String COLUMN_USER_REF_ID = "user_id"; // Foreign Key
-    private static final String COLUMN_HEARTRATE = "heart_rate";
+    private static final String COLUMN_SENSOR_DATA = "sensor_data";
     private static final String COLUMN_TIMESTAMP = "timestamp";
 
     // Alarms Table Columns
@@ -62,7 +61,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             "CREATE TABLE " + TABLE_HEARTBEAT + " (" +
                     COLUMN_SENSOR_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
                     COLUMN_USER_REF_ID + " INTEGER NOT NULL, " +
-                    COLUMN_HEARTRATE + " REAL, " +
+                    COLUMN_SENSOR_DATA + " REAL, " +
                     COLUMN_TIMESTAMP + " TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
                     "FOREIGN KEY (" + COLUMN_USER_REF_ID + ") REFERENCES " + TABLE_USERS + "(" + COLUMN_USER_ID + "));";
 
@@ -130,11 +129,13 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     // Insert Sensor Data
-    public long insertSensorData(int userId, double heartbeat) {
+    public long insertSensorData(int userId, double sensorData, long timestamp) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(COLUMN_USER_REF_ID, userId);
-        values.put(COLUMN_HEARTRATE, heartbeat);
+        values.put(COLUMN_SENSOR_DATA, sensorData);
+        values.put(COLUMN_TIMESTAMP, timestamp); // Insert the timestamp
+
         return db.insert(TABLE_HEARTBEAT, null, values);
     }
 
@@ -296,44 +297,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         }
         cursor.close();
         return userId;
-    }
-    public void insertSensorData(String username, String sensorData) {
-        // Step 1: Get the userId for the given username
-        int userId = getUserIdByUsername(username);
-
-        if (userId == -1) {
-            // Handle case where user was not found
-            System.out.println("User not found!");
-            return;
-        }
-
-        // Step 2: Split the sensor data string
-        String[] dataParts = sensorData.split(",");
-
-        if (dataParts.length != 2) {
-            // Handle error if the data is not in expected format
-            System.out.println("Invalid sensor data format");
-            return;
-        }
-
-        String heartbeat = dataParts[0].trim();   // Heartbeat value
-        String timestamp = dataParts[1].trim();    // Timestamp value
-
-        // Step 3: Insert the sensor data into the Heartbeat_sensor table
-        SQLiteDatabase db = this.getWritableDatabase();
-        ContentValues values = new ContentValues();
-        values.put(COLUMN_USER_REF_ID, userId);   // Use the userId dynamically
-        values.put(COLUMN_HEARTRATE, heartbeat); // Insert the heart rate
-        values.put(COLUMN_TIMESTAMP, timestamp);   // Insert the timestamp
-
-        // Insert the data into the table
-        long result = db.insert(TABLE_HEARTBEAT, null, values);
-
-        if (result > 0) {
-            System.out.println("Sensor data inserted successfully!");
-        } else {
-            System.out.println("Failed to insert sensor data.");
-        }
     }
 
 
