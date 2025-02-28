@@ -13,6 +13,8 @@ import androidx.core.content.ContextCompat;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.android.material.bottomnavigation.BottomNavigationView;
+
 import java.util.regex.Pattern;
 
 
@@ -37,7 +39,8 @@ public class ConnectToDevice extends AppCompatActivity {
         deviceAddressInput = findViewById(R.id.deviceAddressInput);
         statusTextView = findViewById(R.id.statusTextView);
         Button connectButton = findViewById(R.id.connectButton);
-
+        BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
+        NavigationBar.setupNavigation(this, bottomNavigationView);
         connectButton.setOnClickListener(v -> {
             String macAddress = deviceAddressInput.getText().toString().trim();
             if (!isValidMacAddress(macAddress)) {

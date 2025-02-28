@@ -39,5 +39,6 @@
         <activity android:name="com.example.sack.ConnectToDevice" />
         <activity android:name="com.example.sack.AlarmSetPage" />
         <activity android:name="com.example.sack.TimeSetPage" />
+        <activity android:name=".ProfileActivity"/>
     </application>
 </manifest>

@@ -1,14 +1,10 @@
 package com.example.sack;
 
 import android.annotation.SuppressLint;
-import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.view.MenuItem;
 import android.widget.TextView;
-
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -35,8 +31,8 @@ public class HomePage extends AppCompatActivity {
         setContentView(R.layout.homepage);
         TextView welcomeMessage = findViewById(R.id.welcomeMessage);
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
+        NavigationBar.setupNavigation(this, bottomNavigationView);
         LineChart lineChart = findViewById(R.id.lineChart);
-        bottomNavigationView.setOnItemSelectedListener(this::onNavigationItemSelected);
         String username = getIntent().getStringExtra("USERNAME");
         DatabaseHelper dbHelper = new DatabaseHelper(this);
         if (username != null && !username.isEmpty()) {
@@ -51,35 +47,6 @@ public class HomePage extends AppCompatActivity {
             welcomeMessage.setText("Welcome User");
         }
 
-        // Example: Simulating multiple data points coming from ESP32
-        String[] sensorDataArray = {
-                "80,2025-02-24 13:00:00",
-                "82,2025-02-24 13:01:00",
-                "75,2025-02-24 13:02:00"
-        };
-
-        for (String data : sensorDataArray) {
-            dbHelper.insertSensorData("testuser", data); // Replace "testuser" with actual username
-        }
-
-    }
-
-    private boolean onNavigationItemSelected(@NonNull MenuItem item) {
-        int id = item.getItemId();
-        if (id == R.id.nav_home) {
-            startActivity(new Intent(HomePage.this, HomePage.class));
-            return true;
-        } else if (id == R.id.nav_alarm) {
-            startActivity(new Intent(HomePage.this, AlarmSetPage.class));
-            return true;
-        } else if (id == R.id.nav_ConnectToDevice) {
-            startActivity(new Intent(HomePage.this, ConnectToDevice.class));
-            return true;
-        }else if (id == R.id.nav_profile) {
-            startActivity(new Intent(HomePage.this, ProfileActivity.class));
-            return true;
-        }
-        return false;
     }
 
     private void insertDummyData(DatabaseHelper dbHelper, int userId) {

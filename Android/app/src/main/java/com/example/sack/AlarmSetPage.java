@@ -11,6 +11,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.text.SimpleDateFormat;
@@ -38,7 +39,8 @@ public class AlarmSetPage extends AppCompatActivity {
         tvAlarmDate = findViewById(R.id.tv_alarm_date);
         recyclerAlarmList = findViewById(R.id.recycler_alarm_list);
         btnAddAlarm = findViewById(R.id.btn_add_alarm);
-
+        BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
+        NavigationBar.setupNavigation(this, bottomNavigationView);
         // Set current date dynamically
         updateCurrentDate();
 
