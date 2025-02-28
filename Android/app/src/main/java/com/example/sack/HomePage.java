@@ -1,6 +1,7 @@
 package com.example.sack;
 
 import android.annotation.SuppressLint;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -33,7 +34,8 @@ public class HomePage extends AppCompatActivity {
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
         NavigationBar.setupNavigation(this, bottomNavigationView);
         LineChart lineChart = findViewById(R.id.lineChart);
-        String username = getIntent().getStringExtra("USERNAME");
+        SharedPreferences sharedPreferences = getSharedPreferences("MyPreferences", MODE_PRIVATE);
+        String username = sharedPreferences.getString("USERNAME", "default_username"); // Default if not found
         DatabaseHelper dbHelper = new DatabaseHelper(this);
         if (username != null && !username.isEmpty()) {
             welcomeMessage.setText("Welcome " + username);
@@ -62,7 +64,6 @@ public class HomePage extends AppCompatActivity {
 
         System.out.println("DEBUG: Inserted 72 dummy heartbeat records.");
     }
-
 
     // Display heartbeat data on the graph
     private void displayHeartbeatDataOnGraph(int userId, DatabaseHelper dbHelper, LineChart lineChart) {

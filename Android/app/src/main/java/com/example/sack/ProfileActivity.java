@@ -1,6 +1,7 @@
 package com.example.sack;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.InputType;
 import android.view.View;
@@ -11,6 +12,8 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 public class ProfileActivity extends AppCompatActivity {
     private EditText etFullName, etUsername, etAge, etPassword;
@@ -25,11 +28,16 @@ public class ProfileActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.profileactivity);
-
+        BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
+        NavigationBar.setupNavigation(this, bottomNavigationView);
         dbHelper = new DatabaseHelper(this);
-
         // Retrieve logged-in user
-        String username = getIntent().getStringExtra("USERNAME");
+        SharedPreferences sharedPreferences = getSharedPreferences("MyPreferences", MODE_PRIVATE);
+        String username = sharedPreferences.getString("USERNAME", "default_username"); // Default if not found
+        if (username == null || username.isEmpty()) {
+            Toast.makeText(this, "Username is missing", Toast.LENGTH_SHORT).show();
+            return; // Or handle the error accordingly
+        }
         userId = dbHelper.getUserIdByUsername(username);
 
         // Initialize UI elements
@@ -173,5 +181,4 @@ public class ProfileActivity extends AppCompatActivity {
             Toast.makeText(this, "Failed to update profile!", Toast.LENGTH_SHORT).show();
         }
     }
-
 }

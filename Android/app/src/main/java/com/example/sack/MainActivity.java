@@ -1,6 +1,7 @@
 package com.example.sack;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.EditText;
@@ -55,10 +56,12 @@ private DatabaseHelper dbHelper;
             } else {
                 if (dbHelper.validateUser(username, password)) {
                     Toast.makeText(this, "Login Successful!", Toast.LENGTH_SHORT).show();
+                    SharedPreferences sharedPreferences = getSharedPreferences("MyPreferences", MODE_PRIVATE);
+                    SharedPreferences.Editor editor = sharedPreferences.edit();
+                    editor.putString("USERNAME", username); // Save username
+                    editor.apply();
                     Intent intent = new Intent(MainActivity.this, HomePage.class);
-                    intent.putExtra("USERNAME", username); // Pass UserName to next activity
                     startActivity(intent);
-                    finish(); // Close login activity
                 } else {
                     Toast.makeText(this, "Invalid Credentials!", Toast.LENGTH_SHORT).show();
                 }
