@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#1E1E2E"
-    android:padding="24dp">
+    android:padding="0dp"> <!-- Removed extra padding -->
 
     <!-- Profile Title -->
     <TextView
@@ -16,170 +15,164 @@
         android:textColor="#FF6B6B"
         android:textSize="24sp"
         android:textStyle="bold"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginBottom="20dp"/>
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="16dp"/>
 
-    <!-- Name Label -->
-    <TextView
-        android:id="@+id/tv_name_label"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Name:"
-        android:textColor="#FFFFFF"
-        android:textSize="16sp"
-        app:layout_constraintTop_toBottomOf="@id/tv_profile_title"
-        app:layout_constraintStart_toStartOf="parent"/>
+    <!-- ScrollView to Contain Profile Fields -->
+    <ScrollView
+        android:id="@+id/profile_scrollview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@id/bottom_navigation"
+        android:layout_below="@id/tv_profile_title"
+        android:padding="24dp">
 
-    <!-- Name Input -->
-    <EditText
-        android:id="@+id/et_full_name"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:textColor="#FFFFFF"
-        android:backgroundTint="#FF6B6B"
-        android:hint="Enter your full name"
-        android:padding="12dp"
-        android:textSize="16sp"
-        android:enabled="false"
-        app:layout_constraintTop_toBottomOf="@id/tv_name_label"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginBottom="16dp"/>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
 
-    <!-- Username Label -->
-    <TextView
-        android:id="@+id/tv_username_label"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Username:"
-        android:textColor="#FFFFFF"
-        android:textSize="16sp"
-        app:layout_constraintTop_toBottomOf="@id/et_full_name"
-        app:layout_constraintStart_toStartOf="parent"/>
+            <!-- Name Label -->
+            <TextView
+                android:id="@+id/tv_name_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Name:"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"/>
 
-    <!-- Username Input -->
-    <EditText
-        android:id="@+id/et_username"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:textColor="#FFFFFF"
-        android:backgroundTint="#FF6B6B"
-        android:hint="Enter your username"
-        android:padding="12dp"
-        android:textSize="16sp"
-        android:enabled="false"
-        app:layout_constraintTop_toBottomOf="@id/tv_username_label"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginBottom="16dp"/>
+            <!-- Name Input -->
+            <EditText
+                android:id="@+id/et_full_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#FF6B6B"
+                android:hint="Enter your full name"
+                android:padding="12dp"
+                android:textSize="16sp"
+                android:enabled="false"
+                android:layout_marginBottom="16dp"/>
 
-    <!-- Age Label -->
-    <TextView
-        android:id="@+id/tv_age_label"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Age:"
-        android:textColor="#FFFFFF"
-        android:textSize="16sp"
-        app:layout_constraintTop_toBottomOf="@id/et_username"
-        app:layout_constraintStart_toStartOf="parent"/>
+            <!-- Username Label -->
+            <TextView
+                android:id="@+id/tv_username_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Username:"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"/>
 
-    <!-- Age Input -->
-    <EditText
-        android:id="@+id/et_age"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:textColor="#FFFFFF"
-        android:backgroundTint="#FF6B6B"
-        android:hint="Enter your age"
-        android:padding="12dp"
-        android:textSize="16sp"
-        android:enabled="false"
-        app:layout_constraintTop_toBottomOf="@id/tv_age_label"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginBottom="16dp"/>
+            <!-- Username Input -->
+            <EditText
+                android:id="@+id/et_username"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#FF6B6B"
+                android:hint="Enter your username"
+                android:padding="12dp"
+                android:textSize="16sp"
+                android:enabled="false"
+                android:layout_marginBottom="16dp"/>
 
-    <!-- Password Label -->
-    <TextView
-        android:id="@+id/tv_password_label"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Password:"
-        android:textColor="#FFFFFF"
-        android:textSize="16sp"
-        app:layout_constraintTop_toBottomOf="@id/et_age"
-        app:layout_constraintStart_toStartOf="parent"/>
+            <!-- Age Label -->
+            <TextView
+                android:id="@+id/tv_age_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Age:"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"/>
 
-    <!-- Password Input -->
-    <EditText
-        android:id="@+id/et_password"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:textColor="#FFFFFF"
-        android:backgroundTint="#FF6B6B"
-        android:hint="Enter new password"
-        android:padding="12dp"
-        android:textSize="16sp"
-        android:enabled="false"
-        android:inputType="textPassword"
-        app:layout_constraintTop_toBottomOf="@id/tv_password_label"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginBottom="8dp"/>
+            <!-- Age Input -->
+            <EditText
+                android:id="@+id/et_age"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#FF6B6B"
+                android:hint="Enter your age"
+                android:padding="12dp"
+                android:textSize="16sp"
+                android:enabled="false"
+                android:layout_marginBottom="16dp"/>
 
-    <!-- Show Password Toggle -->
-    <CheckBox
-        android:id="@+id/cb_show_password"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Show Password"
-        android:textColor="#FF6B6B"
-        app:layout_constraintTop_toBottomOf="@id/et_password"
-        app:layout_constraintStart_toStartOf="parent"
-        android:layout_marginTop="8dp"/>
+            <!-- Password Label -->
+            <TextView
+                android:id="@+id/tv_password_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Password:"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"/>
 
-    <!-- Edit Profile Button -->
-    <Button
-        android:id="@+id/btn_edit_profile"
+            <!-- Password Input -->
+            <EditText
+                android:id="@+id/et_password"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#FF6B6B"
+                android:hint="Enter new password"
+                android:padding="12dp"
+                android:textSize="16sp"
+                android:enabled="false"
+                android:inputType="textPassword"
+                android:layout_marginBottom="8dp"/>
+
+            <!-- Show Password Toggle -->
+            <CheckBox
+                android:id="@+id/cb_show_password"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Show Password"
+                android:textColor="#FF6B6B"
+                android:layout_marginTop="8dp"/>
+
+            <!-- Edit Profile Button -->
+            <Button
+                android:id="@+id/btn_edit_profile"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Edit Profile"
+                android:backgroundTint="#FF6B6B"
+                android:textColor="#FFFFFF"
+                android:layout_marginTop="20dp"/>
+
+            <!-- Cancel Button -->
+            <Button
+                android:id="@+id/btn_cancel_edit"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Cancel"
+                android:backgroundTint="#D32F2F"
+                android:textColor="#FFFFFF"
+                android:visibility="gone"
+                android:layout_marginTop="10dp"/>
+
+            <!-- Save Changes Button -->
+            <Button
+                android:id="@+id/btn_save_changes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Save Changes"
+                android:backgroundTint="#4CAF50"
+                android:textColor="#FFFFFF"
+                android:visibility="gone"
+                android:layout_marginTop="10dp"/>
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- Bottom Navigation Bar - Always Sticks to the Bottom -->
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottom_navigation"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Edit Profile"
-        android:backgroundTint="#FF6B6B"
-        android:textColor="#FFFFFF"
-        app:layout_constraintTop_toBottomOf="@id/cb_show_password"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="20dp"/>
-
-    <!-- Cancel Button -->
-    <Button
-        android:id="@+id/btn_cancel_edit"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Cancel"
-        android:backgroundTint="#D32F2F"
-        android:textColor="#FFFFFF"
-        android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@id/btn_edit_profile"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="10dp"/>
-
-    <!-- Save Changes Button -->
-    <Button
-        android:id="@+id/btn_save_changes"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Save Changes"
-        android:backgroundTint="#4CAF50"
-        android:textColor="#FFFFFF"
-        android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@id/btn_cancel_edit"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="10dp"/>
-
-</androidx.constraintlayout.widget.ConstraintLayout>
+        android:background="#181828"
+        app:itemIconTint="@color/white"
+        app:itemTextColor="@color/white"
+        app:labelVisibilityMode="labeled"
+        android:layout_alignParentBottom="true"
+        app:menu="@menu/bottom_nav_menu"/>
+</RelativeLayout>

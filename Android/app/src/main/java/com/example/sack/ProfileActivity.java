@@ -143,19 +143,35 @@ public class ProfileActivity extends AppCompatActivity {
     private void updateProfile() {
         String fullName = etFullName.getText().toString().trim();
         String username = etUsername.getText().toString().trim();
-        String age = etAge.getText().toString().trim();
+        String ageText = etAge.getText().toString().trim();
         String password = etPassword.getText().toString().trim();
 
-        if (dbHelper.updateUserProfile(userId, fullName, username, Integer.parseInt(age), password)) {
+        // Validate Age Input - Ensure it's only numbers
+        if (!ageText.matches("\\d+")) {
+            etAge.setError("Age must be a valid number");
+            return;
+        }
+
+        int age = Integer.parseInt(ageText);
+        if (age <= 0 || age > 100) {
+            etAge.setError("Please enter a valid age");
+            return;
+        }
+
+        // If validation passes, proceed with saving
+        if (dbHelper.updateUserProfile(userId, fullName, username, age, password)) {
             Toast.makeText(this, "Profile updated successfully!", Toast.LENGTH_SHORT).show();
+
             // Update stored values after saving
             originalFullName = fullName;
             originalUsername = username;
-            originalAge = age;
+            originalAge = ageText;
             originalPassword = password;
+
             setEditingEnabled(false);
         } else {
             Toast.makeText(this, "Failed to update profile!", Toast.LENGTH_SHORT).show();
         }
     }
+
 }

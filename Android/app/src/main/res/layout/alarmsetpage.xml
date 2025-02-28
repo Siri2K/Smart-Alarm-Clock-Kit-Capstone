@@ -47,7 +47,7 @@
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler_alarm_list"
         android:layout_width="match_parent"
-        android:layout_height="550dp"
+        android:layout_height="500dp"
         android:layout_below="@id/tv_alarm_date"
         android:layout_marginTop="20dp"
         android:paddingHorizontal="16dp"
@@ -63,8 +63,20 @@
         android:src="@android:drawable/ic_input_add"
         android:backgroundTint="#FF6B6B"
         android:tint="#FFFFFF"
-        android:layout_alignParentBottom="true"
+        android:layout_alignParentEnd="true"
         android:layout_margin="24dp"
-        android:layout_alignParentEnd="true"/>
+        android:layout_above="@id/bottom_navigation" />
+
+    <!-- Bottom Navigation Bar -->
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottom_navigation"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:background="#181828"
+        app:menu="@menu/bottom_nav_menu"
+        app:itemIconTint="@color/white"
+        app:itemTextColor="@color/white"
+        app:labelVisibilityMode="labeled" />
 
 </RelativeLayout>
