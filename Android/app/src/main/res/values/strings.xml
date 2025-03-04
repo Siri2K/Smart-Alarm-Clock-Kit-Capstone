@@ -6,4 +6,13 @@
         <item>Female</item>
         <item>Other</item>
     </string-array>
+    <string-array name="alarm_sounds">
+        <item>Default</item>
+        <item>Beep</item>
+        <item>Bell</item>
+        <item>Chime</item>
+        <item>Digital</item>
+        <item>Melody</item>
+    </string-array>
+
 </resources>

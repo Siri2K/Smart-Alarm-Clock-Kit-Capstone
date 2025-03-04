@@ -8,7 +8,10 @@ import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.Spinner;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.TimePicker;
@@ -22,11 +25,13 @@ public class TimeSetPage extends AppCompatActivity {
 
     private TimePicker timePicker;
     private TextView tvSelectedDays;
-    private Switch switchAlarmSound, switchVibrate;
+    private Spinner spinnerAlarmSound;
+    private Switch switchVibrate;
     private Button btnSave, btnCancel;
     private ArrayList<String> selectedDays;
     private DatabaseHelper databaseHelper;
-    private int userId = 1; // Replace with actual logged-in user ID
+    private int userId = 1;
+    private String selectedSound = "Default"; // Default selected sound
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,7 +41,7 @@ public class TimeSetPage extends AppCompatActivity {
         // Initialize UI components
         timePicker = findViewById(R.id.time_picker);
         tvSelectedDays = findViewById(R.id.tv_selected_days);
-        switchAlarmSound = findViewById(R.id.switch_alarm_sound);
+        spinnerAlarmSound = findViewById(R.id.spinner_alarm_sound);
         switchVibrate = findViewById(R.id.switch_vibrate);
         btnSave = findViewById(R.id.btn_save);
         btnCancel = findViewById(R.id.btn_cancel_set);
@@ -62,6 +67,9 @@ public class TimeSetPage extends AppCompatActivity {
 
         // Setup click listeners for day selection
         setupDaySelection();
+
+        // Setup Alarm Sound Selection
+        setupAlarmSoundSpinner();
 
         // Handle Cancel Button
         btnCancel.setOnClickListener(v -> finish());
@@ -109,19 +117,54 @@ public class TimeSetPage extends AppCompatActivity {
         tvSelectedDays.setText(String.join(", ", selectedDays));
     }
 
+
+    //Sets up the spinner for selecting the alarm sound.
+    private void setupAlarmSoundSpinner() {
+        // Create an ArrayAdapter using alarm sounds
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
+                this, R.array.alarm_sounds, android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerAlarmSound.setAdapter(adapter);
+
+        // Reference the TextView to display selected sound
+        TextView tvSelectedSound = findViewById(R.id.tv_selected_alarm_sound);
+
+        // Handle user selection
+        spinnerAlarmSound.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                selectedSound = parent.getItemAtPosition(position).toString(); // Save selected sound
+                tvSelectedSound.setText("Selected Sound: " + selectedSound); // 🔹 Update UI
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                selectedSound = "Default"; // Default sound
+                tvSelectedSound.setText("Selected Sound: Default"); // 🔹 Update UI
+            }
+        });
+    }
+
+
+    //Save the Alarm in the Database
     private void saveAlarm() {
         int hour = timePicker.getHour();
         int minute = timePicker.getMinute();
         String time = String.format("%02d:%02d", hour, minute);
         String repeatDays = selectedDays.isEmpty() ? "None" : String.join(", ", selectedDays);
+        boolean vibrateEnabled = switchVibrate.isChecked();
 
-        long result = databaseHelper.insertAlarm(userId, time, "Alarm", repeatDays);
+        // Store the selected alarm sound type
+        String alarmSound = selectedSound;
+        String alarmLabel = "Alarm"; // You can modify this if needed
+
+        //Pass parameters in the correct order
+        long result = databaseHelper.insertAlarm(userId, time, alarmLabel, repeatDays, alarmSound, vibrateEnabled);
 
         if (result > 0) {
-            System.out.println("DEBUG: Alarm successfully saved - Time: " + time + ", Repeat: " + repeatDays);
+            System.out.println("DEBUG: Alarm successfully saved - Time: " + time + ", Sound: " + alarmSound + ", Repeat: " + repeatDays);
             Toast.makeText(this, "Alarm Saved!", Toast.LENGTH_SHORT).show();
 
-            // Ensure Activity Result is returned properly
             Intent returnIntent = new Intent();
             setResult(RESULT_OK, returnIntent);
             finish();
@@ -130,4 +173,5 @@ public class TimeSetPage extends AppCompatActivity {
             Toast.makeText(this, "Failed to save alarm", Toast.LENGTH_SHORT).show();
         }
     }
+
 }

@@ -16,13 +16,13 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 public class ProfileActivity extends AppCompatActivity {
-    private EditText etFullName, etUsername, etAge, etPassword;
-    private Button btnEditProfile, btnSaveChanges, btnCancelEdit;
+    private EditText etFullName, etUsername, etAge, etPassword, etSecurityQuestion, etSecurityAnswer;
+    private Button btnEditProfile, btnSaveChanges, btnCancelEdit, btnLogout;
     private CheckBox cbShowPassword;
     private DatabaseHelper dbHelper;
     private int userId;
     private String securityQuestion, securityAnswer;
-    private String originalFullName, originalUsername, originalAge, originalPassword; // Store original values
+    private String originalFullName, originalUsername, originalAge, originalPassword, originalSecurityQuestion, originalSecurityAnswer; // Store original values
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,13 +30,15 @@ public class ProfileActivity extends AppCompatActivity {
         setContentView(R.layout.profileactivity);
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
         NavigationBar.setupNavigation(this, bottomNavigationView);
+
         dbHelper = new DatabaseHelper(this);
+
         // Retrieve logged-in user
         SharedPreferences sharedPreferences = getSharedPreferences("MyPreferences", MODE_PRIVATE);
         String username = sharedPreferences.getString("USERNAME", "default_username"); // Default if not found
         if (username == null || username.isEmpty()) {
             Toast.makeText(this, "Username is missing", Toast.LENGTH_SHORT).show();
-            return; // Or handle the error accordingly
+            return;
         }
         userId = dbHelper.getUserIdByUsername(username);
 
@@ -45,9 +47,12 @@ public class ProfileActivity extends AppCompatActivity {
         etUsername = findViewById(R.id.et_username);
         etAge = findViewById(R.id.et_age);
         etPassword = findViewById(R.id.et_password);
+        etSecurityQuestion = findViewById(R.id.et_security_question);
+        etSecurityAnswer = findViewById(R.id.et_security_answer);
         btnEditProfile = findViewById(R.id.btn_edit_profile);
         btnSaveChanges = findViewById(R.id.btn_save_changes);
         btnCancelEdit = findViewById(R.id.btn_cancel_edit);
+        btnLogout = findViewById(R.id.btn_logout);
         cbShowPassword = findViewById(R.id.cb_show_password);
 
         // Load user details
@@ -74,6 +79,9 @@ public class ProfileActivity extends AppCompatActivity {
 
         // Cancel button resets fields and disables editing
         btnCancelEdit.setOnClickListener(v -> cancelEditing());
+
+        // Logout button
+        btnLogout.setOnClickListener(v -> showLogoutDialog());
     }
 
     private void loadUserProfile(String username) {
@@ -83,13 +91,15 @@ public class ProfileActivity extends AppCompatActivity {
             originalUsername = user.getUsername();
             originalAge = String.valueOf(user.getAge());
             originalPassword = user.getPassword();
+            originalSecurityQuestion = user.getSecurityQuestion();
+            originalSecurityAnswer = user.getSecurityAnswer();
 
             etFullName.setText(originalFullName);
             etUsername.setText(originalUsername);
             etAge.setText(originalAge);
-            etPassword.setText(originalPassword); // Initially hidden
-            securityQuestion = user.getSecurityQuestion();
-            securityAnswer = user.getSecurityAnswer();
+            etPassword.setText(originalPassword);
+            etSecurityQuestion.setText(originalSecurityQuestion);
+            etSecurityAnswer.setText(originalSecurityAnswer);
         }
     }
 
@@ -98,6 +108,8 @@ public class ProfileActivity extends AppCompatActivity {
         etUsername.setEnabled(true);
         etAge.setEnabled(true);
         etPassword.setEnabled(true);
+        etSecurityQuestion.setEnabled(true);
+        etSecurityAnswer.setEnabled(true);
 
         btnEditProfile.setVisibility(View.GONE);
         btnSaveChanges.setVisibility(View.VISIBLE);
@@ -109,6 +121,8 @@ public class ProfileActivity extends AppCompatActivity {
         etUsername.setEnabled(enabled);
         etAge.setEnabled(enabled);
         etPassword.setEnabled(enabled);
+        etSecurityQuestion.setEnabled(enabled);
+        etSecurityAnswer.setEnabled(enabled);
 
         if (!enabled) {
             btnSaveChanges.setVisibility(View.GONE);
@@ -122,39 +136,60 @@ public class ProfileActivity extends AppCompatActivity {
         etUsername.setText(originalUsername);
         etAge.setText(originalAge);
         etPassword.setText(originalPassword);
+        etSecurityQuestion.setText(originalSecurityQuestion);
+        etSecurityAnswer.setText(originalSecurityAnswer);
 
         setEditingEnabled(false);
     }
 
     private void promptSecurityQuestion() {
+        // Retrieve the correct security question for the logged-in user
+        securityQuestion = dbHelper.getSecurityQuestion(originalUsername); // Fetch from database
+        securityAnswer = dbHelper.getSecurityAnswer(originalUsername); // Fetch correct answer
+
+        if (securityQuestion == null || securityAnswer == null) {
+            Toast.makeText(this, "Error: Security question not found!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Security Verification");
 
+        // Display the user's actual security question
+        builder.setMessage(securityQuestion);
+
         // Input field for the security answer
         final EditText input = new EditText(this);
-        input.setHint(securityQuestion);
+        input.setHint("Enter your security answer");
+        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD); // Hide input
         builder.setView(input);
 
         builder.setPositiveButton("Verify", (dialog, which) -> {
             String answer = input.getText().toString().trim();
+
             if (answer.equalsIgnoreCase(securityAnswer)) {
-                updateProfile();
+                updateProfile(); // ✅ If correct, allow the user to update profile
             } else {
                 Toast.makeText(this, "Incorrect security answer!", Toast.LENGTH_SHORT).show();
             }
         });
 
-        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
+        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
+
+        // Show the dialog
         builder.show();
     }
+
+
 
     private void updateProfile() {
         String fullName = etFullName.getText().toString().trim();
         String username = etUsername.getText().toString().trim();
         String ageText = etAge.getText().toString().trim();
         String password = etPassword.getText().toString().trim();
+        String newSecurityQuestion = etSecurityQuestion.getText().toString().trim();
+        String newSecurityAnswer = etSecurityAnswer.getText().toString().trim();
 
-        // Validate Age Input - Ensure it's only numbers
         if (!ageText.matches("\\d+")) {
             etAge.setError("Age must be a valid number");
             return;
@@ -166,19 +201,45 @@ public class ProfileActivity extends AppCompatActivity {
             return;
         }
 
-        // If validation passes, proceed with saving
-        if (dbHelper.updateUserProfile(userId, fullName, username, age, password)) {
+        if (newSecurityQuestion.isEmpty() || newSecurityAnswer.isEmpty()) {
+            Toast.makeText(this, "Security question and answer cannot be empty!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (dbHelper.updateUserProfile(userId, fullName, username, age, password, newSecurityQuestion, newSecurityAnswer)) {
             Toast.makeText(this, "Profile updated successfully!", Toast.LENGTH_SHORT).show();
 
-            // Update stored values after saving
             originalFullName = fullName;
             originalUsername = username;
             originalAge = ageText;
             originalPassword = password;
+            originalSecurityQuestion = newSecurityQuestion;
+            originalSecurityAnswer = newSecurityAnswer;
 
             setEditingEnabled(false);
         } else {
             Toast.makeText(this, "Failed to update profile!", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private void showLogoutDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Log Out")
+                .setMessage("Are you sure you want to log out?")
+                .setPositiveButton("Yes", (dialog, which) -> logoutUser())
+                .setNegativeButton("No", (dialog, which) -> dialog.dismiss())
+                .show();
+    }
+
+    private void logoutUser() {
+        SharedPreferences sharedPreferences = getSharedPreferences("MyPreferences", MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.clear();
+        editor.apply();
+
+        Intent intent = new Intent(ProfileActivity.this, MainActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
     }
 }
