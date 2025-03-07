@@ -1,4 +1,4 @@
-set(SOURCES "Button.c")
+set(SOURCES)
 set(INCLUDES "include")
 
 idf_component_register(

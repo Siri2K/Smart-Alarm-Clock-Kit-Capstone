@@ -17,7 +17,8 @@
         "button.h": "c",
         "ble.h": "c",
         "slideswitch.h": "c",
-        "esp_bt.h": "c"
+        "esp_bt.h": "c",
+        "esp_err.h": "c"
     },
     "idf.flashType": "UART",
     "idf.portWin": "COM3"

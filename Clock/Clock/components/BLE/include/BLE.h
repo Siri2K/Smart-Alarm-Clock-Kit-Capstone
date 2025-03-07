@@ -7,6 +7,7 @@
 #include <esp_bt_main.h>
 #include <esp_gap_ble_api.h>
 #include <esp_gatts_api.h>
+#include <esp_bt_defs.h>
 #include <nvs_flash.h>
 
 /* C Library */
@@ -15,9 +16,10 @@
 /* Definition */
 #define CLOCK_NAME "CLOCK-BLE"
 
-/* Globals */
-static esp_ble_adv_params_t advertisingParameters;
-static esp_ble_adv_data_t advertisingData;
+#define GATTS_APP_ID    0x55
+#define SERVICE_UUID    0x00FF
+#define CHAR_UUID       0xFF01
+
 
 /* Functions */
 extern void initializeBLE();
@@ -25,6 +27,7 @@ extern void initializeNVS();
 extern void initializeBLEController();
 extern void initializeBluedroid();
 extern void configureBLE();
-static void GAPEventHandler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param);
+
+
 
 #endif

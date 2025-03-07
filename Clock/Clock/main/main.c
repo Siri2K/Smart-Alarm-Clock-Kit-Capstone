@@ -73,14 +73,8 @@ EventBits_t synchronizeClear(const EventBits_t uxBitsToSet);
 void app_main(void)
 {
 
-        // 1) Initialize NVS first (only once!)
-    esp_err_t ret = nvs_flash_init();
-    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-        ESP_ERROR_CHECK(nvs_flash_erase());
-        ret = nvs_flash_init();
-    }
-    ESP_ERROR_CHECK(ret);
-    ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT));
+    // 1) Initialize NVS first (only once!)
+    initializeNVS();
     // 2) Initialize BLE
     initializeBLE();
     
