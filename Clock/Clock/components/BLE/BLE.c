@@ -88,6 +88,23 @@ esp_ble_gatts_add_char(service_handle, &char_uuid,
    NULL, NULL);
 break;
 }
+case ESP_GATTS_WRITE_EVT: {
+    ESP_LOGI(TAG, "Write event, conn_id %d, handle %d", param->write.conn_id, param->write.handle);
+    // Example Log the received data
+    ESP_LOGI(TAG, "Received data: ");
+    for (int i = 0; i < param->write.len; i++) {
+        ESP_LOGI(TAG, "%02X ", param->write.value[i]);
+    }
+    ESP_LOGI(TAG, "\n");
+    // Optionally, send a response back
+    esp_gatt_rsp_t rsp;
+    memset(&rsp, 0, sizeof(esp_gatt_rsp_t));
+    rsp.attr_value.handle = param->write.handle;
+    rsp.attr_value.len = param->write.len;
+    memcpy(rsp.attr_value.value, param->write.value, param->write.len);
+    esp_ble_gatts_send_response(gatts_if, param->write.conn_id, param->write.trans_id, ESP_GATT_OK, &rsp);
+    break;
+}
 case ESP_GATTS_ADD_CHAR_EVT: {
 char_handle = param->add_char.attr_handle;
 ESP_LOGI(TAG, "Characteristic added, handle %d", char_handle);
