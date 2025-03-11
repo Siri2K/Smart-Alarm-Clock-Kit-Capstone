@@ -37,6 +37,8 @@
         <activity android:name="com.example.sack.HomePage" />
         <activity android:name="com.example.sack.ResetPwd" />
         <activity android:name="com.example.sack.ConnectToDevice" />
-        <activity android:name="com.example.sack.AlarmList" />
+        <activity android:name="com.example.sack.AlarmSetPage" />
+        <activity android:name="com.example.sack.TimeSetPage" />
+        <activity android:name="com.example.sack.ProfileActivity"/>
     </application>
 </manifest>

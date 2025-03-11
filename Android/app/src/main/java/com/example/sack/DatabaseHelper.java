@@ -11,8 +11,9 @@ import java.util.ArrayList;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
 
+
     private static final String DATABASE_NAME = "Alarm_DB";
-    private static final int DATABASE_VERSION = 2;
+    private static final int DATABASE_VERSION = 7;
 
     // Table Names
     private static final String TABLE_HEARTBEAT = "Heartbeat_sensor";
@@ -38,9 +39,11 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     // Alarms Table Columns
     private static final String COLUMN_ALARM_ID = "alarm_id";
     private static final String COLUMN_ALARM_TIME = "alarm_time";
+    private static final String COLUMN_ALARM_SOUND = "alarm_sound";
     private static final String COLUMN_ALARM_LABEL = "alarm_label";
     private static final String COLUMN_ALARM_STATUS = "alarm_status"; // 0 = Disabled, 1 = Enabled
     private static final String COLUMN_REPEAT_DAYS = "repeat_days";
+    private static final String COLUMN_VIBRATE = "vibrate";
 
 
     // Users Table Creation
@@ -73,8 +76,11 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                     COLUMN_ALARM_TIME + " TEXT NOT NULL, " +
                     COLUMN_ALARM_LABEL + " TEXT, " +
                     COLUMN_ALARM_STATUS + " INTEGER DEFAULT 1, " +
-                    "repeat_days TEXT, " +
+                    COLUMN_REPEAT_DAYS + " TEXT DEFAULT '', " +
+                    COLUMN_ALARM_SOUND + " TEXT DEFAULT 'Default', " +
+                    COLUMN_VIBRATE + " INTEGER DEFAULT 0, " +
                     "FOREIGN KEY (" + COLUMN_USER_REF_ID + ") REFERENCES " + TABLE_USERS + "(" + COLUMN_USER_ID + "));";
+
 
 
 
@@ -94,27 +100,17 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         if (oldVersion < 2) {
-            // Add missing "full_name" column
             db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_FULL_NAME + " TEXT NOT NULL DEFAULT ''");
+            db.execSQL("ALTER TABLE " + TABLE_ALARMS + " ADD COLUMN " + COLUMN_REPEAT_DAYS + " TEXT DEFAULT ''");
+            db.execSQL("ALTER TABLE " + TABLE_ALARMS + " ADD COLUMN " + COLUMN_ALARM_SOUND + " TEXT DEFAULT 'Default'"); // ✅ Fix: Space added before TEXT
+            db.execSQL("ALTER TABLE " + TABLE_ALARMS + " ADD COLUMN " + COLUMN_VIBRATE + " INTEGER DEFAULT 0"); // ✅ Fix: Space added before INTEGER
         }
-        if (oldVersion < 3) {
-            db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_AGE + " INTEGER DEFAULT 0");
-            db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_Gender + " TEXT DEFAULT ''");
+        if (oldVersion < 3) { //Ensure new columns are always created
+            db.execSQL("ALTER TABLE " + TABLE_ALARMS + " ADD COLUMN " + COLUMN_ALARM_SOUND + "TEXT DEFAULT 'Default'");
+            db.execSQL("ALTER TABLE " + TABLE_ALARMS + " ADD COLUMN " + COLUMN_VIBRATE + "INTEGER DEFAULT 0");
         }
-        if (oldVersion < 4) {
-            db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_CONDITION + " TEXT DEFAULT ''");
-        }
-        if (oldVersion < 5) {
-            db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_SECURITY_QUESTION + " TEXT DEFAULT ''");
-            db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_SECURITY_ANSWER + " TEXT DEFAULT ''");
-        }
-        if (oldVersion < 6) {
-            // Fix: Add repeat_days column if missing
-            db.execSQL("ALTER TABLE " + TABLE_ALARMS + " ADD COLUMN repeat_days TEXT DEFAULT ''");
-        }
+
     }
-
-
 
 
     // Insert User
@@ -143,11 +139,13 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     // Insert Sensor Data
-    public long insertSensorData(int userId, double sensorData) {
+    public long insertSensorData(int userId, double sensorData, long timestamp) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(COLUMN_USER_REF_ID, userId);
         values.put(COLUMN_SENSOR_DATA, sensorData);
+        values.put(COLUMN_TIMESTAMP, timestamp); // Insert the timestamp
+
         return db.insert(TABLE_HEARTBEAT, null, values);
     }
 
@@ -157,26 +155,30 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return db.rawQuery("SELECT * FROM " + TABLE_HEARTBEAT + " WHERE " + COLUMN_USER_REF_ID + "=?", new String[]{String.valueOf(userId)});
     }
 
-    // Insert Alarm
-    public long insertAlarm(int userId, String time, String label, String repeatDays) {
+    // Insert Alarm with Custom Sound & Vibration
+    public long insertAlarm(int userId, String time, String label, String repeatDays, String alarmSound, boolean vibrate) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(COLUMN_USER_REF_ID, userId);
         values.put(COLUMN_ALARM_TIME, time);
         values.put(COLUMN_ALARM_LABEL, label);
         values.put(COLUMN_REPEAT_DAYS, repeatDays);
+        values.put(COLUMN_ALARM_SOUND, alarmSound); //Store selected alarm sound
+        values.put(COLUMN_VIBRATE, vibrate ? 1 : 0); //Store vibration setting
         values.put(COLUMN_ALARM_STATUS, 1);
 
         long result = db.insert(TABLE_ALARMS, null, values);
 
         if (result > 0) {
-            System.out.println("DEBUG: Alarm inserted successfully in database - ID: " + result);
+            System.out.println("DEBUG: Alarm inserted successfully - ID: " + result +
+                    ", Time: " + time + ", Sound: " + alarmSound + ", Vibrate: " + vibrate);
         } else {
             System.out.println("DEBUG: Alarm insertion failed.");
         }
 
         return result;
     }
+
 
 
 
@@ -310,6 +312,40 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         cursor.close();
         return userId;
     }
+
+    public UserModel getUserProfile(String username) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT * FROM user_data WHERE username=?", new String[]{username});
+        if (cursor.moveToFirst()) {
+            @SuppressLint("Range") UserModel user = new UserModel(
+                    cursor.getString(cursor.getColumnIndex("full_name")),
+                    cursor.getString(cursor.getColumnIndex("username")),
+                    cursor.getInt(cursor.getColumnIndex("age")),
+                    cursor.getString(cursor.getColumnIndex("password")),
+                    cursor.getString(cursor.getColumnIndex("security_question")),
+                    cursor.getString(cursor.getColumnIndex("security_answer"))
+            );
+            cursor.close();
+            return user;
+        }
+        cursor.close();
+        return null;
+    }
+
+
+    public boolean updateUserProfile(int userId, String fullName, String username, int age, String password, String securityQuestion, String securityAnswer) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put("full_name", fullName);
+        values.put("username", username);
+        values.put("age", age);
+        values.put("password", password);
+        values.put("security_question", securityQuestion);
+        values.put("security_answer", securityAnswer);
+
+        return db.update("user_data", values, "user_id=?", new String[]{String.valueOf(userId)}) > 0;
+    }
+
 
 
 }

@@ -38,9 +38,9 @@
         android:id="@+id/switch_alarm"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:trackTint="@drawable/switch_track_selector"
+        android:thumbTint="@drawable/switch_track_selector"
         android:checked="true"
-        android:thumbTint="@color/white"
-        android:trackTint="@color/black"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"/>

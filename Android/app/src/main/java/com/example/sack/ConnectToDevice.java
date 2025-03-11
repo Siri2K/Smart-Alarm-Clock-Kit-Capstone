@@ -1,26 +1,33 @@
 package com.example.sack;
 
+import android.Manifest;
+import android.bluetooth.BluetoothAdapter;
+import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.Manifest;
-import android.content.pm.PackageManager;
 
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import java.util.regex.Pattern;
-
 
 public class ConnectToDevice extends AppCompatActivity {
     private EditText deviceAddressInput;
     private TextView statusTextView;
     private BLEManager bleManager;
+    private BluetoothAdapter bluetoothAdapter;
     private static final int REQUEST_BLUETOOTH_PERMISSIONS = 1;
+    private static final int REQUEST_ENABLE_BLUETOOTH = 2;
+
+    // MAC address validation pattern
     private static final Pattern MAC_ADDRESS_PATTERN =
             Pattern.compile("^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$");
 
@@ -30,6 +37,8 @@ public class ConnectToDevice extends AppCompatActivity {
         setContentView(R.layout.connecttodevice);
 
         bleManager = new BLEManager(this);
+        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+
         setupUI();
     }
 
@@ -37,12 +46,20 @@ public class ConnectToDevice extends AppCompatActivity {
         deviceAddressInput = findViewById(R.id.deviceAddressInput);
         statusTextView = findViewById(R.id.statusTextView);
         Button connectButton = findViewById(R.id.connectButton);
+        BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
+        NavigationBar.setupNavigation(this, bottomNavigationView);
 
         connectButton.setOnClickListener(v -> {
             String macAddress = deviceAddressInput.getText().toString().trim();
+
             if (!isValidMacAddress(macAddress)) {
                 Toast.makeText(this, "Invalid MAC address! Please check and try again.", Toast.LENGTH_SHORT).show();
                 statusTextView.setText("Invalid MAC address!");
+                return;
+            }
+
+            if (!isBluetoothEnabled()) {
+                requestBluetoothEnable();
                 return;
             }
 
@@ -70,8 +87,12 @@ public class ConnectToDevice extends AppCompatActivity {
     }
 
     private void checkPermissions(String macAddress) {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.BLUETOOTH_SCAN}, REQUEST_BLUETOOTH_PERMISSIONS);
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED ||
+                ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT},
+                    REQUEST_BLUETOOTH_PERMISSIONS);
         } else {
             connectToDevice(macAddress);
         }
@@ -85,7 +106,17 @@ public class ConnectToDevice extends AppCompatActivity {
             Toast.makeText(this, "Connection failed! Please check the MAC address.", Toast.LENGTH_SHORT).show();
         }
     }
+
     private boolean isValidMacAddress(String macAddress) {
         return MAC_ADDRESS_PATTERN.matcher(macAddress).matches();
+    }
+
+    private boolean isBluetoothEnabled() {
+        return bluetoothAdapter != null && bluetoothAdapter.isEnabled();
+    }
+
+    private void requestBluetoothEnable() {
+        Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+        startActivityForResult(enableBtIntent, REQUEST_ENABLE_BLUETOOTH);
     }
 }
