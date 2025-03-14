@@ -1,33 +1,64 @@
 package com.example.sack;
+
 import android.app.Activity;
 import android.content.Intent;
+import android.os.Handler;
+import android.os.Looper;
+import android.util.Log;
 import android.view.MenuItem;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+
 public class NavigationBar {
 
     public static void setupNavigation(Activity activity, BottomNavigationView bottomNavigationView) {
-        bottomNavigationView.setOnItemSelectedListener(item -> onNavigationItemSelected(activity, item));
+        bottomNavigationView.setOnItemSelectedListener(item -> {
+            return onNavigationItemSelected(activity, item);
+        });
 
-        // Highlight the current activity
+        // Get the selected item
         int selectedItem = getSelectedItem(activity);
-        bottomNavigationView.setSelectedItemId(selectedItem);
+
+        // Ensure the correct menu item is highlighted
+        if (selectedItem != -1) {
+            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                bottomNavigationView.setSelectedItemId(selectedItem);
+                // Manually force selection
+                MenuItem menuItem = bottomNavigationView.getMenu().findItem(selectedItem);
+                if (menuItem != null) {
+                    menuItem.setChecked(true);
+                }
+                Log.d("NavigationDebug", "Set selected item: " + selectedItem);
+            }, 100);
+        }
     }
 
     private static boolean onNavigationItemSelected(Activity activity, MenuItem item) {
         int id = item.getItemId();
-        if (id == R.id.nav_home && !(activity instanceof HomePage)) {
-            activity.startActivity(new Intent(activity, HomePage.class));
-        } else if (id == R.id.nav_alarm && !(activity instanceof AlarmSetPage)) {
-            activity.startActivity(new Intent(activity, AlarmSetPage.class));
-        } else if (id == R.id.nav_ConnectToDevice && !(activity instanceof ConnectToDevice)) {
-            activity.startActivity(new Intent(activity, ConnectToDevice.class));
-        } else if (id == R.id.nav_profile && !(activity instanceof ProfileActivity)) {
-            activity.startActivity(new Intent(activity, ProfileActivity.class));
-        } else {
+
+        // Prevent reloading the same activity
+        if (id == getSelectedItem(activity)) {
             return false;
         }
-        activity.overridePendingTransition(0, 0); // Smooth transition
-        return true;
+
+        Intent intent = null;
+        if (id == R.id.nav_home) {
+            intent = new Intent(activity, HomePage.class);
+        } else if (id == R.id.nav_alarm) {
+            intent = new Intent(activity, AlarmSetPage.class);
+        } else if (id == R.id.nav_ConnectToDevice) {
+            intent = new Intent(activity, ConnectToDevice.class);
+        } else if (id == R.id.nav_profile) {
+            intent = new Intent(activity, ProfileActivity.class);
+        }
+
+        if (intent != null) {
+            activity.startActivity(intent);
+            activity.overridePendingTransition(0, 0); // Smooth transition
+            activity.finish(); // Prevent stacking multiple activities
+            return true;
+        }
+
+        return false;
     }
 
     private static int getSelectedItem(Activity activity) {

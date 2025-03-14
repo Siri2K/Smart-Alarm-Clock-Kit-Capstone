@@ -49,12 +49,17 @@ public class ConnectToDevice extends AppCompatActivity {
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
         NavigationBar.setupNavigation(this, bottomNavigationView);
 
+        // Restore the saved status message
+        String savedStatus = getSharedPreferences("AppPrefs", MODE_PRIVATE)
+                .getString("status_message", "Status: Waiting");
+        statusTextView.setText(savedStatus);
+
         connectButton.setOnClickListener(v -> {
             String macAddress = deviceAddressInput.getText().toString().trim();
 
             if (!isValidMacAddress(macAddress)) {
                 Toast.makeText(this, "Invalid MAC address! Please check and try again.", Toast.LENGTH_SHORT).show();
-                statusTextView.setText("Invalid MAC address!");
+                updateStatus("Invalid MAC address!");
                 return;
             }
 
@@ -63,7 +68,7 @@ public class ConnectToDevice extends AppCompatActivity {
                 return;
             }
 
-            statusTextView.setText("Connecting to " + macAddress + "...");
+            updateStatus("Connecting to " + macAddress + "...");
             checkPermissions(macAddress);
         });
 
@@ -82,9 +87,19 @@ public class ConnectToDevice extends AppCompatActivity {
         });
     }
 
+
     public void updateStatus(String message) {
-        runOnUiThread(() -> statusTextView.setText(message));
+        runOnUiThread(() -> {
+            statusTextView.setText(message);
+
+            // Save the status in SharedPreferences
+            getSharedPreferences("AppPrefs", MODE_PRIVATE)
+                    .edit()
+                    .putString("status_message", message)
+                    .apply();
+        });
     }
+
 
     private void checkPermissions(String macAddress) {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED ||
