@@ -17,8 +17,10 @@
         "*.tcc": "c",
         "string.h": "c",
         "i2c.h": "c",
-        "i2c_types.h": "c"
+        "i2c_types.h": "c",
+        "stdio.h": "c"
     },
     "idf.flashType": "UART",
-    "idf.portWin": "COM3"
+    "idf.portWin": "COM3",
+    "idf.port": "/dev/ttyUSB0"
 }

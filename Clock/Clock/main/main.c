@@ -4,7 +4,8 @@
 #include "LCD.h"
 #include "RealTimeClock.h"
 #include "SlideSwitch.h"
-
+#include "Wifi.h"
+#include "bulb.h"
 /* FreeRTOS Header */
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
@@ -25,6 +26,14 @@
 #define READ_TIME_BIT   (EventBits_t)(1<<4) // Slide_Switch on Alarm Mode
 #define BUZZER_ON       (EventBits_t)(1<<5) // Buzzer Activates
 #define BUZZER_SNOOZED  (EventBits_t)(1<<6) // Buzzer Activates
+#define WIFI_CONNECTED  (EventBits_t)(1<<7) // Verify Wifi Connection
+
+// WIFI
+#define WIFI_FAIL       (EventBits_t)(1<<8) // Verify Wifi fail
+#define WIFI_CONNECT    (EventBits_t)(1<<9) // Wifi connect
+#define WIFI_CONFIG     (EventBits_t)(1<<10) // confirms existing configuration
+
+#define BULB_CONFIG     (EventBits_t)(1<<11) // confirms existing configuration
 
 /* Global Structures */
 typedef struct parts_t{
@@ -37,12 +46,22 @@ typedef struct parts_t{
 
     // Variables
     uint8_t currentTime[4], alarmTime[4];
-}parts_t;
 
+    //wifi
+       char* ssid; 
+       char* pass;
+    
+    //bulb
+        char* sku; //device sku
+        char* device; //device mac address
+        char* key; //govee key
+        int* bulbmode; //use Bulb mode
+        
+}parts_t;
 
 /* Global Objects/Variables */
 // Parts
-parts_t parts;
+static parts_t parts;
 
 // Variables
 // Constant
@@ -70,6 +89,8 @@ TaskHandle_t initializeAllHWHandle; // HW Handle
 TaskHandle_t checkControlModeHandle; // SlideSwitch Handle
 TaskHandle_t readTimeHandle, changeCurrentTimeHandle, changeAlarmTimeHandle; // SlideSwitch Handle
 TaskHandle_t readClockTimeHandle; // RTC Handle
+TaskHandle_t setWifihandle; //set wifi handle
+TaskHandle_t setbulbhandle; //set wifi handle
 
 // Logging
 static const char *TAG = "Clock Log:";
@@ -84,6 +105,8 @@ void checkControlMode(void *pvParameters);
 void changeCurrentTime(void *pvParameters);
 void changeAlarmTime(void *pvParameters);
 void readClockTime(void *pvParameters);
+void setWifi(void *pvParameters);
+void bulbthread(void *pvParameters);
 
 // Helper Function
 EventBits_t synchronizeWait(const EventBits_t uxBitsToSet);
@@ -92,12 +115,26 @@ EventBits_t synchronizeSet(const EventBits_t uxBitsToSet);
 /* Main Functions */
 void app_main(void)
 {
+    esp_err_t ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        ret = nvs_flash_init();
+    }
     // Initialize Time
     ESP_LOGI(TAG,"Initialize Time");
     for(int i=0; i<3; i++){
         parts.currentTime[i] = (i==0)?12:0;
         parts.alarmTime[i] = (i==0)?12:0;
     }
+    parts.ssid="asdf"; //code won't work currently if this isn't set
+    parts.pass="asdf"; //code won't work currently if this isn't set
+    parts.sku="asdf";
+    parts.bulbmode=0;
+    parts.device="asdf";
+
+    wifi_init();
+    wifi_configuration(parts.ssid,parts.pass);
+    wifi_start();
 
     ControlTask((void*)(&parts));
 }
@@ -109,18 +146,17 @@ void ControlTask(void *pvParameters){
     // Variables
     eventGroup = xEventGroupCreate();
     parts_t *part = (parts_t*)pvParameters;
-
     /* Create All Tasks */
     // Initalize All HW
     xTaskCreatePinnedToCore(initializeAllHWTask,"HardWare Initialization", sizeof(parts_t),part, configMAX_PRIORITIES -1, &initializeAllHWHandle,1);
-    
     // Create All Functionality tasks
     xTaskCreatePinnedToCore(checkControlMode,"Check Clock Mode", sizeof(parts_t),part, tskIDLE_PRIORITY + 3,&checkControlModeHandle,1);
     xTaskCreatePinnedToCore(readClockTime,"Read Current Time", sizeof(parts_t),part, tskIDLE_PRIORITY,&readTimeHandle,1);
     xTaskCreatePinnedToCore(changeCurrentTime,"Change Curent Time", sizeof(parts_t),part, tskIDLE_PRIORITY + 1,&changeCurrentTimeHandle,1);
     xTaskCreatePinnedToCore(changeAlarmTime,"Change Alarm Time", sizeof(parts_t),part, tskIDLE_PRIORITY + 1,&changeAlarmTimeHandle,1);
+    xTaskCreatePinnedToCore(bulbthread,"Bulb Thread",sizeof(parts_t),part, tskIDLE_PRIORITY + 1,&setbulbhandle,1);
 
-    // Start Scheduler
+    // Start Schedule
     vTaskStartScheduler();
 }
 
@@ -164,14 +200,15 @@ void initializeAllHWTask(void *pvParameters){
     ESP_LOGI(TAG,"Set Default Time to RTC");
 
     part->rtc.writeTime(
-        part->currentTime[0], // hour = 0100 1100 -> 12AM
-        part->currentTime[1], // minute = 0x00 -> 00
+      part->currentTime[0], // hour = 0100 1100 -> 12AM
+      part->currentTime[1], // minute = 0x00 -> 00
         part->currentTime[2], // Second = 0x00 -> 00
         part->currentTime[3] 
     );
     
     // Set Event
     synchronizeSet(HW_INITIALIZE);
+    synchronizeSet(WIFI_CONFIG);
 }
 
 void checkControlMode(void *pvParameters){
@@ -422,3 +459,49 @@ void turnOnBuzzer(void *pvParameters){
     }
 }
 
+IRAM_ATTR void setWifi(void *pvParameters){
+    // synchronizeWait(WIFI_CONFIG); //makes sure that the wifi SSID and Password are set (needs to be done later with BLE data from phone)
+    // initialize Wifi
+    ESP_LOGI(TAG,"wifi init");
+    //wifi_init();
+
+    // Configure Wifi
+    ESP_LOGI(TAG,"wifi config");
+    parts_t *cfg=(parts_t*)pvParameters;
+    wifi_configuration(cfg->ssid,cfg->pass);
+    
+
+    // Start Wifi
+    ESP_LOGI(TAG,"wifi start");
+    wifi_start();
+
+    // synchronizeSet(WIFI_CONNECTED);
+    ESP_LOGI(TAG,"wifi connection");
+}
+
+
+void bulbthread(void *pvParameters){
+    parts_t *part = (parts_t*)pvParameters;
+    synchronizeWait(BULB_CONFIG);
+    while(true){
+        int *mode = part->bulbmode;
+        char* key= part->key;
+        char* sku= part->sku;
+        char* device=part->device;
+        switch (*mode){
+            case BULB_CONFIG:
+                bconfig(sku,device,key);
+                break;
+            case BULB_ON:
+                ESP_LOGI(TAG,"Turn light on");
+                sendRequest(1);
+                break;
+            case BULB_OFF:
+                ESP_LOGI(TAG,"Turn light off");
+                sendRequest(0);
+                break;
+            default:
+                break;
+            }
+    }
+}
