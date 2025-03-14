@@ -11,13 +11,14 @@
 
 /* C Library */
 #include <stdio.h>
+#include <string.h>
 
 /* Definition */
 #define CLOCK_NAME "CLOCK-BLE"
+#define WATCH_MAC (uint8_t[6]){0xCC,0xC2,0xCC,0xFC,0x8A,0x09}
 
 /* Globals */
-static esp_ble_adv_params_t advertisingParameters;
-static esp_ble_adv_data_t advertisingData;
+extern uint8_t storedData[4];
 
 /* Functions */
 extern void initializeBLE();
