@@ -13,7 +13,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
 
     private static final String DATABASE_NAME = "Alarm_DB";
-    private static final int DATABASE_VERSION = 7;
+    private static final int DATABASE_VERSION = 6;
 
     // Table Names
     private static final String TABLE_HEARTBEAT = "Heartbeat_sensor";
@@ -105,7 +105,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             db.execSQL("ALTER TABLE " + TABLE_ALARMS + " ADD COLUMN " + COLUMN_ALARM_SOUND + " TEXT DEFAULT 'Default'"); // ✅ Fix: Space added before TEXT
             db.execSQL("ALTER TABLE " + TABLE_ALARMS + " ADD COLUMN " + COLUMN_VIBRATE + " INTEGER DEFAULT 0"); // ✅ Fix: Space added before INTEGER
         }
-        if (oldVersion < 3) { //Ensure new columns are always created
+        if (oldVersion < 8) { //Ensure new columns are always created
             db.execSQL("ALTER TABLE " + TABLE_ALARMS + " ADD COLUMN " + COLUMN_ALARM_SOUND + "TEXT DEFAULT 'Default'");
             db.execSQL("ALTER TABLE " + TABLE_ALARMS + " ADD COLUMN " + COLUMN_VIBRATE + "INTEGER DEFAULT 0");
         }
