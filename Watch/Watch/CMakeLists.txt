@@ -8,18 +8,15 @@ project(Watch)
 
 # Automatically add all .c files in Component and subdirectories
 file(GLOB COMPONENT_SOURCES src/Component/**/*.c)
-file(GLOB SERVICE_SOURCES src/Services/**/*.c)
 
 # Target all Source Files
 target_sources(app PRIVATE 
     src/main.c
     ${COMPONENT_SOURCES} # Add all component source files
-    ${SERVICE_SOURCES} # Add all Services source files
 )
 
 # include Component Folder + Subdirectories
 target_include_directories(app PRIVATE
     src
     src/Component
-    src/Services
 )

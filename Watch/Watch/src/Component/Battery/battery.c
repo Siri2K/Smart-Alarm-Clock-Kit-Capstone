@@ -1,6 +1,6 @@
 #include "battery.h"
 
-uint8_t batteryBuffer[1];
+int16_t batteryBuffer[1];
 static const struct device *batteryDevice = DEVICE_DT_GET(BATTERY_NODE);
 
 static struct adc_channel_cfg batteryChannel = {
@@ -8,11 +8,7 @@ static struct adc_channel_cfg batteryChannel = {
     .reference = ADC_REFERENCE,
     .gain = ADC_GAIN,
     .acquisition_time = ADC_ACQ_TIME_DEFAULT,
-    
-    #ifdef CONFIG_ADC_NRFX_SAADC
-        .input_positive = ADC_PORT
-    #endif
-
+    .input_positive = ADC_PORT
 };
 
 static struct adc_sequence batterySequence = {
@@ -22,10 +18,34 @@ static struct adc_sequence batterySequence = {
     .resolution = ADC_RESOLUTION
 };
 
-uint8_t initializeBattery(){
-    return (uint8_t)device_is_ready(batteryDevice) && (uint8_t)adc_channel_setup(batteryDevice,&batteryChannel); // Configigure Device and Channel
+int8_t initializeBattery(){
+    int8_t status = 0;
+
+    // Ready Device
+    status = (int8_t)device_is_ready(batteryDevice); // Configure Device
+    if(status != 1){
+        printk("Battery ADC Pin %d is not ready and returns with status %d\n", ADC_CHANNEL, status);
+        return status;
+    }
+
+    // Channel Setup
+    status = (int8_t)adc_channel_setup(batteryDevice,&batteryChannel); // Configure Channel
+    if(status != 0){
+        printk("Battery ADC Pin %d is not ready and returns with status %d\n", ADC_CHANNEL, status);
+        return status;
+    }
+    
+    return 0;
 }
 
-uint16_t readBatteryChargePercentage(){
-    return (adc_read(batteryDevice,&batterySequence)*25)>>6;
+int16_t readBatteryChargePercentage(){
+    // Read ADC
+    int8_t status = adc_read(batteryDevice,&batterySequence);
+    if(status != 0){
+        printk("ADC read failed with status %d\n", status);
+        return 0;
+    }
+
+    // Convert ADC
+    return (batteryBuffer[0]*25)>>6;
 }

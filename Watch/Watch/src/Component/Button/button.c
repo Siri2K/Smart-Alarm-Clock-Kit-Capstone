@@ -1,26 +1,47 @@
 #include "button.h"
 
-static const struct gpio_dt_spec buttonNode = GPIO_DT_SPEC_GET_OR(BUTTON_NODE, gpios,{0});
+static const struct gpio_dt_spec buttonNode = GPIO_DT_SPEC_GET(BUTTON_NODE, gpios);
 
-uint8_t initializeButton(){
+int8_t initializeButton(){
     // Initialize GPIO
-    uint8_t status = gpio_is_ready_dt(&buttonNode) && gpio_pin_configure_dt(&buttonNode,GPIO_INPUT) && \
-    gpio_pin_interrupt_configure_dt(&buttonNode,GPIO_INT_EDGE_TO_ACTIVE);
+    int8_t status = 0;
 
-    return status; // 0 = true, 1 = Error
+    // Get Button Node Ready
+    status = (int8_t)gpio_is_ready_dt(&buttonNode);
+    if(status != 1){
+        return status;
+    }
+
+    status = (int8_t)gpio_pin_configure_dt(&buttonNode,GPIO_INPUT);
+    if(status != 0){
+        return status;
+    }
+
+    status = (int8_t)gpio_pin_interrupt_configure_dt(&buttonNode,GPIO_INT_EDGE_TO_INACTIVE);
+    if(status != 0){
+        return status;
+    }
+
+    return 0; // 0 = true, 1 = Error
 }
 
-uint8_t pressed(){
+int8_t pressed(){
     return gpio_pin_get_dt(&buttonNode);
 }
+
 
 int64_t calculatePressTime(){
     // Time variables
     int64_t buttonPressedStartTime = 0;
     int64_t duration = 0;
 
-    // Lock task until Button is released
+    // Button not Pressed
     while(pressed() == 0){
+        k_msleep(50);
+    }
+
+    // Lock task until Button is released
+    while(pressed() != 0){
         if(buttonPressedStartTime == 0){
             buttonPressedStartTime = k_uptime_get(); // Record Current Time
         }
@@ -28,5 +49,12 @@ int64_t calculatePressTime(){
             duration = k_uptime_get() - buttonPressedStartTime;
         }
     }
+
+    // Ensure a non-zero duration is returned
+    if (duration == 0) {
+        duration = k_uptime_get() - buttonPressedStartTime;
+    }
+    k_msleep(50);
+
     return duration;
 }

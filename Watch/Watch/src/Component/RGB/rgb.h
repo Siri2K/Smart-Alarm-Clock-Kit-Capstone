@@ -11,9 +11,9 @@
 #include <stdlib.h>
 
 /* Definitions*/
-#define RED_NODE DT_ALIAS(red_led) // Red LED Node
-#define GREEN_NODE DT_ALIAS(green_led) // Green LED Node
-#define BLUE_NODE DT_ALIAS(blue_led) // Blue LED Node
+#define RED_NODE DT_ALIAS(red) // Red LED Node
+#define GREEN_NODE DT_ALIAS(green) // Green LED Node
+#define BLUE_NODE DT_ALIAS(blue) // Blue LED Node
 
 typedef enum rgb_colors_t{
     GREEN = 0,
@@ -22,10 +22,10 @@ typedef enum rgb_colors_t{
 }rgb_colors_t;
 
 /* Functions */
-extern uint8_t initializeRGB();
+extern int8_t initializeRGB();
 
-extern uint8_t turnOffRGB();
+extern int8_t turnOffRGB();
 
-extern uint8_t turnOnRGB(rgb_colors_t color); 
+extern int8_t turnOnRGB(rgb_colors_t color); 
 
 #endif
