@@ -9,11 +9,13 @@ static struct spi_config accelConfig = {
     .slave = 0,
 };
 
-uint8_t initializeAccelerometer(accelerometer_data_t* accelerometer_data){
+accelerometer_data_t accelerometerData;
+
+uint8_t initializeAccelerometer(){
     // Initialize Accelerometer Data
-    accelerometer_data->vx = 0;
-    accelerometer_data->vy = 0;
-    accelerometer_data->vz = 0;
+    accelerometerData.vx = 0;
+    accelerometerData.vy = 0;
+    accelerometerData.vz = 0;
 
     // Setup CS GPIO Pin
     return gpio_pin_configure(csDev, CS_PIN, GPIO_OUTPUT) && gpio_pin_set(csDev, CS_PIN, GPIO_OUT_PIN16_High);

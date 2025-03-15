@@ -38,9 +38,10 @@ typedef struct accelerometer_data_t{
     int8_t vx,vy,vz;
 }accelerometer_data_t;
 
+extern accelerometer_data_t accelerometerData;
 
 /* Tasks */
-extern uint8_t initializeAccelerometer(accelerometer_data_t* accelerometer_data);
+extern uint8_t initializeAccelerometer();
 extern uint8_t readXYZ(accelerometer_data_t* accelerometer_data);
 
 #endif

@@ -17,7 +17,7 @@
 
 #define ADC_RESOLUTION 8
 #define ADC_CHANNEL 4
-#define ADC_PORT SAADC_CH_PSELN_PSELN_AnalogInput4 // AIN4
+#define ADC_PORT SAADC_CH_PSELP_PSELP_AnalogInput4 // AIN4
 #define ADC_REFERENCE ADC_REF_INTERNAL // Use 0.6V
 #define ADC_GAIN ADC_GAIN_1 // Vref = ADC_REFERENCE * 1
 
@@ -35,8 +35,8 @@ typedef enum battery_charge_level_t{
 
 
 /* Tasks */
-extern uint8_t initializeBattery(); // Setup ADC
+extern int8_t initializeBattery(); // Setup ADC
 
-extern uint16_t readBatteryChargePercentage(); // Read Battery percentages
+extern int16_t readBatteryChargePercentage(); // Read Battery percentages
 
 #endif
