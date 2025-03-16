@@ -6,8 +6,10 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.util.Log;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
 
@@ -139,15 +141,26 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     // Insert Sensor Data
-    public long insertSensorData(int userId, double sensorData, long timestamp) {
+    public long insertSensorData(int userId, int bpm, String timestamp) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
-        values.put(COLUMN_USER_REF_ID, userId);
-        values.put(COLUMN_SENSOR_DATA, sensorData);
-        values.put(COLUMN_TIMESTAMP, timestamp); // Insert the timestamp
+        values.put("user_id", userId);
+        values.put("sensor_data", bpm);
+        values.put("timestamp", timestamp);
 
-        return db.insert(TABLE_HEARTBEAT, null, values);
+        long result = db.insert("Heartbeat_sensor", null, values);
+
+        if (result != -1) {
+            Log.d("DatabaseHelper", "BPM inserted successfully: " + bpm + " at " + timestamp);
+        } else {
+            Log.e("DatabaseHelper", "Failed to insert BPM.");
+        }
+
+        return result;
     }
+
+
+
 
     // Get Sensor Data for a User
     public Cursor getSensorDataByUserId(int userId) {
@@ -346,6 +359,33 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return db.update("user_data", values, "user_id=?", new String[]{String.valueOf(userId)}) > 0;
     }
 
+    public String getAlarmData(int userId) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        List<String> alarmTimes = new ArrayList<>();
+
+        // Fetch all alarm times for the user
+        Cursor cursor = db.rawQuery("SELECT " + COLUMN_ALARM_TIME +
+                        " FROM " + TABLE_ALARMS +
+                        " WHERE " + COLUMN_USER_REF_ID +
+                        " ORDER BY " + COLUMN_ALARM_TIME + " ASC",
+                new String[]{String.valueOf(userId)});
+
+        while (cursor.moveToNext()) {
+            @SuppressLint("Range") String alarmTime = cursor.getString(cursor.getColumnIndex(COLUMN_ALARM_TIME));
+            alarmTimes.add(alarmTime);
+        }
+        cursor.close();
+
+        int alarmCount = alarmTimes.size();
+
+        // If no alarms exist, send a default response
+        if (alarmCount == 0) {
+            return "00:00,0"; // No alarms set
+        }
+
+        // Convert the list of alarms to a single string (comma-separated)
+        return String.join(",", alarmTimes) + "," + alarmCount;
+    }
 
 
 }

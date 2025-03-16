@@ -19,12 +19,19 @@ import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.github.mikephil.charting.charts.LineChart;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 
 public class HomePage extends AppCompatActivity {
+    private int userId; // Make userId a class-level variable
+    private DatabaseHelper dbHelper;
+    private LineChart lineChart;
     @SuppressLint("SetTextI18n")
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -33,15 +40,15 @@ public class HomePage extends AppCompatActivity {
         TextView welcomeMessage = findViewById(R.id.welcomeMessage);
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
         NavigationBar.setupNavigation(this, bottomNavigationView);
-        LineChart lineChart = findViewById(R.id.lineChart);
+        lineChart = findViewById(R.id.lineChart);
         SharedPreferences sharedPreferences = getSharedPreferences("MyPreferences", MODE_PRIVATE);
         String username = sharedPreferences.getString("USERNAME", "default_username"); // Default if not found
-        DatabaseHelper dbHelper = new DatabaseHelper(this);
+        dbHelper = new DatabaseHelper(this);
+        userId = dbHelper.getUserIdByUsername(username);
         if (username != null && !username.isEmpty()) {
             welcomeMessage.setText("Welcome " + username);
-            int userId = dbHelper.getUserIdByUsername(username);
+
             if (userId != -1) {
-                insertDummyData(dbHelper, userId);
                 // Display the data on the graph
                 displayHeartbeatDataOnGraph(userId, dbHelper, lineChart);
             }
@@ -51,25 +58,23 @@ public class HomePage extends AppCompatActivity {
 
     }
 
-    private void insertDummyData(DatabaseHelper dbHelper, int userId) {
-        long currentTime = System.currentTimeMillis(); // Current timestamp
+    private void insertActualData(DatabaseHelper dbHelper, int userId, int bpm, int hour, int minute) {
+        // Generate actual timestamp using ESP-provided hour & minute
+        String formattedTimestamp = generateTimestampFromESP(hour, minute);
 
-        // Simulate 12 hours of data (one entry every 10 minutes)
-        for (int i = 0; i < 72; i++) { // 12 hours * 6 readings per hour
-            long timestamp = currentTime - ((72 - i) * 10 * 60 * 1000); // Every 10 minutes
-            double heartRate = 60 + Math.random() * 30; // Simulate random heart rate between 60-90 BPM
+        // Insert the actual BPM and timestamp into the database
+        dbHelper.insertSensorData(userId, bpm, formattedTimestamp);
 
-            dbHelper.insertSensorData(userId, heartRate, timestamp);
-        }
-
-        System.out.println("DEBUG: Inserted 72 dummy heartbeat records.");
+        System.out.println("DEBUG: Inserted actual BPM record - BPM: " + bpm + " at " + formattedTimestamp);
     }
+
 
     // Display heartbeat data on the graph
     private void displayHeartbeatDataOnGraph(int userId, DatabaseHelper dbHelper, LineChart lineChart) {
         Cursor cursor = dbHelper.getSensorDataByUserId(userId);
 
-        Map<Long, List<Double>> hourlyData = new TreeMap<>();
+        // TreeMap keeps the data sorted by timestamp
+        Map<String, List<Double>> hourlyData = new TreeMap<>();
         if (cursor != null && cursor.moveToFirst()) {
             int sensorDataIndex = cursor.getColumnIndex("sensor_data");
             int timestampIndex = cursor.getColumnIndex("timestamp");
@@ -77,10 +82,10 @@ public class HomePage extends AppCompatActivity {
             if (sensorDataIndex != -1 && timestampIndex != -1) {
                 do {
                     double sensorData = cursor.getDouble(sensorDataIndex);
-                    long timestamp = cursor.getLong(timestampIndex);
+                    String timestamp = cursor.getString(timestampIndex);
 
-                    // Convert timestamp to hour block
-                    long hour = (timestamp / (1000 * 60 * 60)) * (1000 * 60 * 60); // Round to hour
+                    // Extract only hour from the timestamp (HH:00 format)
+                    String hour = formatTimestampToHour(timestamp);
 
                     // Group data by hour
                     hourlyData.putIfAbsent(hour, new ArrayList<>());
@@ -90,24 +95,29 @@ public class HomePage extends AppCompatActivity {
             }
             cursor.close();
         }
+
         ArrayList<Entry> entries = new ArrayList<>();
         ArrayList<String> hourLabels = new ArrayList<>();
         int hourCounter = 1; // Start from hour 1
-        for (Map.Entry<Long, List<Double>> entry : hourlyData.entrySet()) {
-            long hour = entry.getKey();
+
+        for (Map.Entry<String, List<Double>> entry : hourlyData.entrySet()) {
+            String hour = entry.getKey(); // Hour in HH:00 format
             List<Double> values = entry.getValue();
+
+            // Calculate average BPM for the hour
             int avgHeartRate = (int) Math.round(values.stream().mapToDouble(Double::doubleValue).average().orElse(0.0));
 
-            entries.add(new Entry(hourCounter,avgHeartRate));
-            hourLabels.add(String.valueOf(hourCounter)); // X-axis labels 1 to 12
+            // Add data points for the graph
+            entries.add(new Entry(hourCounter, avgHeartRate));
+            hourLabels.add(String.valueOf(Integer.parseInt(hour)));
 
             hourCounter++;
-            if (hourCounter > 12) break;
+            if (hourCounter > 12) break; // Show only the latest 12 hours
         }
 
         if (!entries.isEmpty()) {
             LineDataSet dataSet = new LineDataSet(entries, "Avg Heart Rate per Hour (bpm)");
-            dataSet.setColor(Color.BLUE);
+            dataSet.setColor(Color.RED);
             dataSet.setLineWidth(2f);
             dataSet.setDrawValues(false);
             dataSet.setDrawCircles(true);
@@ -116,30 +126,37 @@ public class HomePage extends AppCompatActivity {
             LineData lineData = new LineData(dataSet);
             lineData.setValueFormatter(new IntegerValueFormatter());
             lineChart.setData(lineData);
-            Legend legend = lineChart.getLegend();
-            legend.setTextColor(Color.WHITE);
-            //Customize style to X and Y Axes
+            System.out.println("DEBUG: Hour Labels: " + hourLabels);
             XAxis xAxis = lineChart.getXAxis();
-            xAxis.setTextColor(Color.parseColor("#FF6B6B"));
-            xAxis.setAxisLineColor(Color.parseColor("#FF6B6B"));
+            xAxis.setTextColor(Color.WHITE);
+            xAxis.setAxisLineColor(Color.RED);
             xAxis.setGridColor(Color.DKGRAY);
-            xAxis.setLabelCount(12, true);
+            xAxis.setLabelCount(hourLabels.size(), true);
             xAxis.setGranularity(1f);
             xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
-            xAxis.setValueFormatter(new IndexAxisValueFormatter(hourLabels)); // Dynamically assign labels from 1 to 12
+            xAxis.setValueFormatter(new IndexAxisValueFormatter(hourLabels)); // Ensure formatted labels
+            xAxis.setAvoidFirstLastClipping(true);
+            xAxis.setLabelRotationAngle(0);
 
+
+
+            // Customize the Y-axis
             YAxis leftAxis = lineChart.getAxisLeft();
             leftAxis.setValueFormatter(new IntegerValueFormatter());
-            leftAxis.setTextColor(Color.parseColor("#FF6B6B"));
-            leftAxis.setAxisLineColor(Color.parseColor("#FF6B6B"));
+            leftAxis.setTextColor(Color.WHITE);
+            leftAxis.setAxisLineColor(Color.RED);
             leftAxis.setGridColor(Color.DKGRAY);
 
             YAxis rightAxis = lineChart.getAxisRight();
-            rightAxis.setTextColor(Color.parseColor("#FF6B6B"));
-            rightAxis.setAxisLineColor(Color.parseColor("#FF6B6B"));
-            rightAxis.setGridColor(Color.DKGRAY);
+            rightAxis.setEnabled(false);
+
+            // Customize legend and appearance
+            Legend legend = lineChart.getLegend();
+            legend.setTextColor(Color.WHITE);
+
             System.out.println("Hour Labels: " + hourLabels);
             System.out.println("Entries: " + entries);
+
             // Refresh the chart
             lineChart.getDescription().setEnabled(false);
             lineChart.invalidate();
@@ -147,7 +164,36 @@ public class HomePage extends AppCompatActivity {
             System.out.println("DEBUG: No valid data to display on the graph.");
         }
     }
+    private String formatTimestampToHour(String timestamp) {
+        try {
+            SimpleDateFormat inputFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+            SimpleDateFormat outputFormat = new SimpleDateFormat("H", Locale.getDefault());
+
+            Date date = inputFormat.parse(timestamp);
+            return outputFormat.format(date); // Returns formatted hour like "08:00"
+        } catch (Exception e) {
+            e.printStackTrace();
+            return timestamp; // Return original timestamp if parsing fails
+        }
+    }
 
 
+
+    private String generateTimestampFromESP(int hour, int minute) {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+        Calendar calendar = Calendar.getInstance();
+
+        // Use the current date but replace the hour and minute with the ESP values
+        calendar.set(Calendar.HOUR_OF_DAY, hour);
+        calendar.set(Calendar.MINUTE, minute);
+        calendar.set(Calendar.SECOND, 0); // Set seconds to 0 for consistency
+
+        return sdf.format(calendar.getTime()); // Return formatted timestamp
+    }
+    public void updateGraph() {
+        runOnUiThread(() -> {
+            displayHeartbeatDataOnGraph(userId, dbHelper, lineChart);
+        });
+    }
 }
 

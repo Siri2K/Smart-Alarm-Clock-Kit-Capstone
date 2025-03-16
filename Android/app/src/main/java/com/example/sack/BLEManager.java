@@ -1,6 +1,9 @@
 package com.example.sack;
 
 import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Locale;
 import java.util.UUID;
 
 import android.app.Activity;
@@ -14,6 +17,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothManager;
+import android.content.SharedPreferences;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -37,7 +41,7 @@ public class BLEManager {
     private Context context;
 
     public interface DataCallback {
-        void onDataReceived(int Heartbeats, String Time, String Debug);
+        void onDataReceived(int bpm, int hour, int minute);
     }
     public interface ConnectionCallback {
         boolean onConnected();
@@ -61,6 +65,7 @@ public class BLEManager {
         instance = this;
     }
     public void setDataCallback(DataCallback callback) {
+
         this.dataCallback = callback;
     }
     public void setConnectionCallback(ConnectionCallback callback) {
@@ -121,23 +126,44 @@ public class BLEManager {
                     String receivedData = new String(rawData, StandardCharsets.UTF_8);
                     Log.d(TAG, "Data received from ESP: " + receivedData);
 
-                    if (dataCallback != null) {
-                        // Parse received data and send it to the UI
-                        String[] parts = receivedData.split(","); // Assuming ESP sends "Heartbeats,Time,Debug"
-                        if (parts.length == 3) {
-                            try {
-                                int heartbeats = Integer.parseInt(parts[0]);
-                                String time = parts[1];
-                                String debug = parts[2];
-                                dataCallback.onDataReceived(heartbeats, time, debug);
-                            } catch (NumberFormatException e) {
-                                Log.e(TAG, "Invalid data format: " + receivedData);
+                    String[] parts = receivedData.split(",");
+                    if (parts.length == 3) { // Expected format: "BPM,Hour,Minute"
+                        try {
+                            int bpm = (int) Double.parseDouble(parts[0]); // Convert BPM to int
+                            int hour = Integer.parseInt(parts[1]);
+                            int minute = Integer.parseInt(parts[2]);
+
+                            // Generate timestamp using received hour and minute
+                            String timestamp = generateTimestampFromESP(hour, minute);
+
+                            // Save BPM & timestamp to database
+                            if (context instanceof AlarmSetPage) {
+                                DatabaseHelper dbHelper = new DatabaseHelper(context);
+                                SharedPreferences sharedPreferences = context.getSharedPreferences("MyPreferences", Context.MODE_PRIVATE);
+                                String loggedInUsername = sharedPreferences.getString("LOGGED_IN_USERNAME", null);
+                                int userId = dbHelper.getUserIdByUsername(loggedInUsername);
+
+                                if (userId != -1) {
+                                    dbHelper.insertSensorData(userId, bpm, timestamp);
+                                    Log.d(TAG, "BPM saved to database: " + bpm + " at " + timestamp);
+                                    // Trigger Graph Update
+                                    ((HomePage) context).runOnUiThread(() -> ((HomePage) context).updateGraph());
+                                } else {
+                                    Log.e(TAG, "Failed to get user ID. BPM not saved.");
+                                }
                             }
+
+                            // Pass data to UI if needed
+                            if (dataCallback != null) {
+                                dataCallback.onDataReceived(bpm, hour, minute);
+                            }
+                        } catch (NumberFormatException e) {
+                            Log.e(TAG, "Invalid data format: " + receivedData);
                         }
                     }
                 }
             }
-        }
+        };
         @Override
         public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
@@ -147,6 +173,29 @@ public class BLEManager {
             }
         }
     };
+    public void sendDataToESP(String ssid, String password, String macAddress, String sku, String apiKey) {
+        if (characteristic == null || bluetoothGatt == null) {
+            Log.e(TAG, "BLE characteristic not found.");
+            return;
+        }
+        String dataToSend = ssid + "," + password + "," + macAddress + "," + sku + "," + apiKey;
+        characteristic.setValue(dataToSend.getBytes(StandardCharsets.UTF_8));
+        bluetoothGatt.writeCharacteristic(characteristic);
+        Log.d(TAG, "Sent WiFi & Bulb data: " + dataToSend);
+    }
+
+    public void sendAlarmDataToESP(DatabaseHelper dbHelper, int userId) {
+        String alarmData = dbHelper.getAlarmData(userId);
+
+        if (characteristic != null && bluetoothGatt != null) {
+            characteristic.setValue(alarmData.getBytes(StandardCharsets.UTF_8));
+            bluetoothGatt.writeCharacteristic(characteristic);
+            Log.d(TAG, "Sent Alarm Data: " + alarmData);
+        } else {
+            Log.e(TAG, "BLE characteristic not found or not connected.");
+        }
+    }
+
     public void disconnect() {
         if (bluetoothGatt != null) {
             bluetoothGatt.disconnect();
@@ -160,4 +209,19 @@ public class BLEManager {
             ((Activity) context).runOnUiThread(() -> Toast.makeText(context, message, Toast.LENGTH_LONG).show());
         }
     }
+    public boolean isConnected() {
+        return bluetoothGatt != null && bluetoothGatt.getConnectionState(bluetoothGatt.getDevice()) == BluetoothProfile.STATE_CONNECTED;
+    }
+    private String generateTimestampFromESP(int hour, int minute) {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+        Calendar calendar = Calendar.getInstance();
+
+        // Use current date but replace hour and minute with ESP values
+        calendar.set(Calendar.HOUR_OF_DAY, hour);
+        calendar.set(Calendar.MINUTE, minute);
+        calendar.set(Calendar.SECOND, 0); // Set seconds to 0
+
+        return sdf.format(calendar.getTime()); // Return formatted timestamp
+    }
+
 }
