@@ -21,4 +21,9 @@
         android:icon ="@drawable/profile"
         android:title ="Profile" />
 
+    <item
+        android:id="@+id/nav_wifi_ble"
+        android:icon="@drawable/ic_wifi_ble"
+        android:title="WiFi/BLE" />
+
 </menu>

@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#1E1E2E"
@@ -16,7 +17,9 @@
         android:textColor="#FF6B6B"
         android:textSize="22sp"
         android:textStyle="bold"
-        android:layout_centerHorizontal="true"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="16dp"/>
 
     <!-- Current Date -->
@@ -27,8 +30,9 @@
         android:text="Wednesday, 13 NOV - 06:15"
         android:textColor="#FFFFFF"
         android:textSize="16sp"
-        android:layout_below="@id/tv_upcoming_alarm"
-        android:layout_centerHorizontal="true"
+        app:layout_constraintTop_toBottomOf="@id/tv_upcoming_alarm"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="4dp"/>
 
     <!-- No Alarms Message (Initially Hidden) -->
@@ -40,19 +44,24 @@
         android:textSize="18sp"
         android:textColor="#FFFFFF"
         android:gravity="center"
-        android:layout_centerInParent="true"
-        android:visibility="gone"/>  <!-- Initially hidden -->
+        app:layout_constraintTop_toBottomOf="@id/tv_alarm_date"
+        app:layout_constraintBottom_toTopOf="@id/recycler_alarm_list"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:visibility="gone"/>
 
     <!-- Alarm List -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler_alarm_list"
-        android:layout_width="match_parent"
-        android:layout_height="500dp"
-        android:layout_below="@id/tv_alarm_date"
-        android:layout_marginTop="20dp"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
         android:paddingHorizontal="16dp"
         android:scrollbars="vertical"
-        tools:ignore="MissingClass" />
+        app:layout_constraintTop_toBottomOf="@id/tv_alarm_date"
+        app:layout_constraintBottom_toTopOf="@id/bottom_navigation"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHeight_percent="0.6" />
 
     <!-- Floating Add Button -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -63,20 +72,19 @@
         android:src="@android:drawable/ic_input_add"
         android:backgroundTint="#FF6B6B"
         android:tint="#FFFFFF"
-        android:layout_alignParentEnd="true"
-        android:layout_margin="24dp"
-        android:layout_above="@id/bottom_navigation" />
+        app:layout_constraintBottom_toTopOf="@id/bottom_navigation"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_margin="24dp" />
 
     <!-- Bottom Navigation Bar -->
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_navigation"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
         android:background="#181828"
         app:menu="@menu/bottom_nav_menu"
         app:itemIconTint="@color/white"
         app:itemTextColor="@color/white"
-        app:labelVisibilityMode="labeled" />
-
-</RelativeLayout>
+        app:labelVisibilityMode="labeled"
+        app:layout_constraintBottom_toBottomOf="parent" />
+</androidx.constraintlayout.widget.ConstraintLayout>

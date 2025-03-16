@@ -19,6 +19,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String TABLE_HEARTBEAT = "Heartbeat_sensor";
     private static final String TABLE_USERS = "user_data";
     private static final String TABLE_ALARMS = "alarms";
+    private static final String TABLE_WIFI = "wifi_settings";
+    private static final String TABLE_BULB = "bulb_settings";
 
     // Users Table Columns
     private static final String COLUMN_USER_ID = "user_id";
@@ -44,6 +46,17 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String COLUMN_ALARM_STATUS = "alarm_status"; // 0 = Disabled, 1 = Enabled
     private static final String COLUMN_REPEAT_DAYS = "repeat_days";
     private static final String COLUMN_VIBRATE = "vibrate";
+
+    // WiFi Table Columns
+    private static final String COLUMN_WIFI_ID = "wifi_id";
+    private static final String COLUMN_SSID = "ssid";
+    private static final String COLUMN_WIFI_PASSWORD = "password";
+
+    // Bulb Table Columns
+    private static final String COLUMN_BULB_ID = "bulb_id";
+    private static final String COLUMN_MAC_ADDRESS = "mac_address";
+    private static final String COLUMN_SKU = "sku";
+    private static final String COLUMN_API_KEY = "api_key";
 
 
     // Users Table Creation
@@ -81,10 +94,20 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                     COLUMN_VIBRATE + " INTEGER DEFAULT 0, " +
                     "FOREIGN KEY (" + COLUMN_USER_REF_ID + ") REFERENCES " + TABLE_USERS + "(" + COLUMN_USER_ID + "));";
 
+    // Create WiFi Settings Table
+    private static final String CREATE_WIFI_TABLE =
+            "CREATE TABLE " + TABLE_WIFI + " (" +
+                    COLUMN_WIFI_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    COLUMN_SSID + " TEXT NOT NULL, " +
+                    COLUMN_WIFI_PASSWORD + " TEXT NOT NULL);";
 
-
-
-
+    // Create Bulb Settings Table
+    private static final String CREATE_BULB_TABLE =
+            "CREATE TABLE " + TABLE_BULB + " (" +
+                    COLUMN_BULB_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    COLUMN_MAC_ADDRESS + " TEXT NOT NULL, " +
+                    COLUMN_SKU + " TEXT NOT NULL, " +
+                    COLUMN_API_KEY + " TEXT NOT NULL);";
 
     public DatabaseHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -95,6 +118,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.execSQL(CREATE_USERS_TABLE);
         db.execSQL(CREATE_HEARTBEAT_TABLE);
         db.execSQL(CREATE_ALARM_TABLE);
+        db.execSQL(CREATE_WIFI_TABLE);
+        db.execSQL(CREATE_BULB_TABLE);
     }
 
     @Override
@@ -102,14 +127,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         if (oldVersion < 2) {
             db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_FULL_NAME + " TEXT NOT NULL DEFAULT ''");
             db.execSQL("ALTER TABLE " + TABLE_ALARMS + " ADD COLUMN " + COLUMN_REPEAT_DAYS + " TEXT DEFAULT ''");
-            db.execSQL("ALTER TABLE " + TABLE_ALARMS + " ADD COLUMN " + COLUMN_ALARM_SOUND + " TEXT DEFAULT 'Default'"); // ✅ Fix: Space added before TEXT
-            db.execSQL("ALTER TABLE " + TABLE_ALARMS + " ADD COLUMN " + COLUMN_VIBRATE + " INTEGER DEFAULT 0"); // ✅ Fix: Space added before INTEGER
+            db.execSQL("ALTER TABLE " + TABLE_ALARMS + " ADD COLUMN " + COLUMN_ALARM_SOUND + " TEXT DEFAULT 'Default'");
+            db.execSQL("ALTER TABLE " + TABLE_ALARMS + " ADD COLUMN " + COLUMN_VIBRATE + " INTEGER DEFAULT 0");
         }
         if (oldVersion < 3) { //Ensure new columns are always created
             db.execSQL("ALTER TABLE " + TABLE_ALARMS + " ADD COLUMN " + COLUMN_ALARM_SOUND + "TEXT DEFAULT 'Default'");
             db.execSQL("ALTER TABLE " + TABLE_ALARMS + " ADD COLUMN " + COLUMN_VIBRATE + "INTEGER DEFAULT 0");
+            db.execSQL("DROP TABLE IF EXISTS " + TABLE_WIFI);
+            db.execSQL("DROP TABLE IF EXISTS " + TABLE_BULB);
         }
-
     }
 
 
@@ -346,6 +372,86 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return db.update("user_data", values, "user_id=?", new String[]{String.valueOf(userId)}) > 0;
     }
 
+
+    // Insert or Update WiFi credentials
+    public void saveOrUpdateWiFiSettings(String ssid, String password) {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        // Check if WiFi settings exist (Only one WiFi entry allowed)
+        Cursor cursor = db.rawQuery("SELECT * FROM " + TABLE_WIFI, null);
+        boolean exists = cursor.moveToFirst();
+        cursor.close();
+
+        ContentValues values = new ContentValues();
+        values.put(COLUMN_SSID, ssid);
+        values.put(COLUMN_WIFI_PASSWORD, password);
+
+        if (exists) {
+            // Update existing entry
+            db.update(TABLE_WIFI, values, null, null);
+        } else {
+            // Insert new entry
+            db.insert(TABLE_WIFI, null, values);
+        }
+        db.close();
+    }
+
+    // Retrieve saved WiFi settings
+    public String[] getWiFiSettings() {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT * FROM " + TABLE_WIFI, null);
+        String[] wifiData = null;
+
+        if (cursor.moveToFirst()) {
+            @SuppressLint("Range") String ssid = cursor.getString(cursor.getColumnIndex(COLUMN_SSID));
+            @SuppressLint("Range") String password = cursor.getString(cursor.getColumnIndex(COLUMN_WIFI_PASSWORD));
+            wifiData = new String[]{ssid, password};
+        }
+        cursor.close();
+        return wifiData;
+    }
+
+
+
+    // Insert or Update Bulb Information
+    public void saveOrUpdateBulbSettings(String macAddress, String sku, String apiKey) {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        // Check if Bulb settings exist (Only one bulb entry allowed)
+        Cursor cursor = db.rawQuery("SELECT * FROM " + TABLE_BULB, null);
+        boolean exists = cursor.moveToFirst();
+        cursor.close();
+
+        ContentValues values = new ContentValues();
+        values.put(COLUMN_MAC_ADDRESS, macAddress);
+        values.put(COLUMN_SKU, sku);
+        values.put(COLUMN_API_KEY, apiKey);
+
+        if (exists) {
+            // Update existing entry
+            db.update(TABLE_BULB, values, null, null);
+        } else {
+            // Insert new entry
+            db.insert(TABLE_BULB, null, values);
+        }
+        db.close();
+    }
+
+    // Retrieve saved Bulb settings
+    public String[] getBulbSettings() {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT * FROM " + TABLE_BULB, null);
+        String[] bulbData = null;
+
+        if (cursor.moveToFirst()) {
+            @SuppressLint("Range") String macAddress = cursor.getString(cursor.getColumnIndex(COLUMN_MAC_ADDRESS));
+            @SuppressLint("Range") String sku = cursor.getString(cursor.getColumnIndex(COLUMN_SKU));
+            @SuppressLint("Range") String apiKey = cursor.getString(cursor.getColumnIndex(COLUMN_API_KEY));
+            bulbData = new String[]{macAddress, sku, apiKey};
+        }
+        cursor.close();
+        return bulbData;
+    }
 
 
 }

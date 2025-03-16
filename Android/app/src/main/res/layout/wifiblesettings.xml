@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#1E1E2E"
+    tools:context=".WiFiBleSettingsActivity">
+
+    <!-- Title -->
+    <TextView
+        android:id="@+id/tv_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="WiFi/BLE Settings"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:textColor="#FF6B6B"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="30dp"/>
+
+    <!-- Section Title: WiFi Information -->
+    <TextView
+        android:id="@+id/tv_wifi_section"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="WiFi Information"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="#FFFFFF"
+        app:layout_constraintTop_toBottomOf="@id/tv_title"
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginTop="20dp"/>
+
+    <!-- WiFi SSID Input -->
+    <EditText
+        android:id="@+id/et_ssid"
+        android:layout_width="0dp"
+        android:layout_height="50dp"
+        android:hint="Enter WiFi SSID"
+        android:background="@drawable/edit_text_background"
+        android:textColor="#FFFFFF"
+        android:textColorHint="#AAAAAA"
+        android:inputType="text"
+        android:padding="12dp"
+        app:layout_constraintTop_toBottomOf="@id/tv_wifi_section"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="10dp"/>
+
+    <!-- WiFi Password Input -->
+    <EditText
+        android:id="@+id/et_password"
+        android:layout_width="0dp"
+        android:layout_height="50dp"
+        android:hint="Enter WiFi Password"
+        android:background="@drawable/edit_text_background"
+        android:textColor="#FFFFFF"
+        android:textColorHint="#AAAAAA"
+        android:inputType="textPassword"
+        android:padding="12dp"
+        app:layout_constraintTop_toBottomOf="@id/et_ssid"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="10dp"/>
+
+    <!-- Section Title: Bulb Information -->
+    <TextView
+        android:id="@+id/tv_bulb_section"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Bulb Information"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="#FFFFFF"
+        app:layout_constraintTop_toBottomOf="@id/et_password"
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginTop="30dp"/>
+
+    <!-- Bulb MAC Address Input -->
+    <EditText
+        android:id="@+id/et_mac_address"
+        android:layout_width="0dp"
+        android:layout_height="50dp"
+        android:hint="Enter Bulb MAC Address"
+        android:background="@drawable/edit_text_background"
+        android:textColor="#FFFFFF"
+        android:textColorHint="#AAAAAA"
+        android:inputType="text"
+        android:padding="12dp"
+        app:layout_constraintTop_toBottomOf="@id/tv_bulb_section"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="10dp"/>
+
+    <!-- Bulb SKU Input -->
+    <EditText
+        android:id="@+id/et_sku"
+        android:layout_width="0dp"
+        android:layout_height="50dp"
+        android:hint="Enter Bulb SKU"
+        android:background="@drawable/edit_text_background"
+        android:textColor="#FFFFFF"
+        android:textColorHint="#AAAAAA"
+        android:inputType="text"
+        android:padding="12dp"
+        app:layout_constraintTop_toBottomOf="@id/et_mac_address"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="10dp"/>
+
+    <!-- Govee API Key Input -->
+    <EditText
+        android:id="@+id/et_api_key"
+        android:layout_width="0dp"
+        android:layout_height="50dp"
+        android:hint="Enter Govee API Key"
+        android:background="@drawable/edit_text_background"
+        android:textColor="#FFFFFF"
+        android:textColorHint="#AAAAAA"
+        android:inputType="text"
+        android:padding="12dp"
+        app:layout_constraintTop_toBottomOf="@id/et_sku"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="10dp"/>
+
+    <!-- Button to fetch devices -->
+    <Button
+        android:id="@+id/btn_fetch_devices"
+        android:layout_width="0dp"
+        android:layout_height="50dp"
+        android:text="Fetch Devices"
+        android:textColor="#FFFFFF"
+        android:backgroundTint="#4CAF50"
+        app:layout_constraintTop_toBottomOf="@id/et_api_key"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="10dp"/>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@id/btn_fetch_devices"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="120dp"/>
+
+
+
+    <!-- Update Button -->
+    <Button
+        android:id="@+id/btn_update"
+        android:layout_width="0dp"
+        android:layout_height="50dp"
+        android:text="Update Information"
+        android:textColor="#FFFFFF"
+        android:backgroundTint="#FF6B6B"
+        app:layout_constraintTop_toBottomOf="@id/et_api_key"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="70dp"/>
+
+    <!-- Clear Fields Button -->
+    <Button
+        android:id="@+id/btn_clear"
+        android:layout_width="0dp"
+        android:layout_height="50dp"
+        android:text="Clear Fields"
+        android:textColor="#FFFFFF"
+        android:backgroundTint="#777777"
+        app:layout_constraintTop_toBottomOf="@id/btn_update"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="10dp"/>
+
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottom_navigation"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_gravity="bottom"
+        android:background="#181828"
+        app:itemIconTint="@color/white"
+        app:itemTextColor="@color/white"
+        app:labelVisibilityMode="labeled"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:menu="@menu/bottom_nav_menu"
+        tools:layout_editor_absoluteX="0dp" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
