@@ -50,9 +50,9 @@ public class BLEManager {
     }
     private static BLEManager instance;
 
-    public static BLEManager getInstance() {
+    public static BLEManager getInstance(Context context) {
         if (instance == null) {
-            throw new IllegalStateException("BLEManager not initialized");
+            instance = new BLEManager(context);
         }
         return instance;
     }
@@ -210,7 +210,13 @@ public class BLEManager {
         }
     }
     public boolean isConnected() {
-        return bluetoothGatt != null && bluetoothGatt.getConnectionState(bluetoothGatt.getDevice()) == BluetoothProfile.STATE_CONNECTED;
+        if (bluetoothGatt == null) {
+            Log.e("BLEManager", "BLE connection check failed: bluetoothGatt is null.");
+            return false;
+        }
+        int connectionState = bluetoothGatt.getConnectionState(bluetoothGatt.getDevice());
+        Log.d("BLEManager", "BLE connection state: " + connectionState);
+        return connectionState == BluetoothProfile.STATE_CONNECTED;
     }
     private String generateTimestampFromESP(int hour, int minute) {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());

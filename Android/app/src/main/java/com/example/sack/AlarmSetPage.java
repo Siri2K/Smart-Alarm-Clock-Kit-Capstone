@@ -113,21 +113,16 @@ public class AlarmSetPage extends AppCompatActivity {
         alarmAdapter.notifyDataSetChanged();
     }
     private void sendAlarmsToESP() {
-        try {
             // Ensure BLEManager is initialized
-            bleManager = BLEManager.getInstance();
+            bleManager = BLEManager.getInstance(this);
 
             // Check if BLE is connected
             if (bleManager.isConnected()) {
-                // Send alarm data
                 bleManager.sendAlarmDataToESP(databaseHelper, userId);
                 Toast.makeText(this, "Alarms sent successfully!", Toast.LENGTH_SHORT).show();
             } else {
                 Toast.makeText(this, "BLE not connected! Please connect before sending alarms.", Toast.LENGTH_LONG).show();
             }
-        } catch (IllegalStateException e) {
-            Toast.makeText(this, "BLEManager not initialized! Connect first before sending alarms.", Toast.LENGTH_LONG).show();
-        }
     }
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
