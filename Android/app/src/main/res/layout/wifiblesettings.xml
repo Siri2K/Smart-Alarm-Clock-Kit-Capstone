@@ -22,7 +22,7 @@
         android:id="@+id/tv_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="WiFi/BLE Settings"
+        android:text="Add a Bulb"
         android:textColor="#FF6B6B"
         android:textSize="22sp"
         android:textStyle="bold"

@@ -44,5 +44,6 @@
         <activity android:name="com.example.sack.AlarmSetPage" />
         <activity android:name="com.example.sack.TimeSetPage" />
         <activity android:name="com.example.sack.ProfileActivity"/>
+        <activity android:name=".WiFiBleSettingsActivity"/>
     </application>
 </manifest>

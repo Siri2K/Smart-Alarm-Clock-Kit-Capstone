@@ -58,13 +58,13 @@ public class HomePage extends AppCompatActivity {
 
     }
 
-    private void insertActualData(DatabaseHelper dbHelper, int userId, int bpm, int hour, int minute) {
+    public void insertActualData(DatabaseHelper dbHelper, int userId, int bpm, int hour, int minute) {
         // Generate actual timestamp using ESP-provided hour & minute
         String formattedTimestamp = generateTimestampFromESP(hour, minute);
 
         // Insert the actual BPM and timestamp into the database
         dbHelper.insertSensorData(userId, bpm, formattedTimestamp);
-
+        dbHelper.printHeartbeatTable();
         System.out.println("DEBUG: Inserted actual BPM record - BPM: " + bpm + " at " + formattedTimestamp);
     }
 
@@ -194,6 +194,9 @@ public class HomePage extends AppCompatActivity {
         runOnUiThread(() -> {
             displayHeartbeatDataOnGraph(userId, dbHelper, lineChart);
         });
+    }
+    public int getUserId() {
+        return userId;
     }
 }
 

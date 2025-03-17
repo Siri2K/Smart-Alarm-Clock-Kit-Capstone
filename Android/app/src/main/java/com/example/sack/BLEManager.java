@@ -39,6 +39,7 @@ public class BLEManager {
     private DataCallback dataCallback;
     private ConnectionCallback connectionCallback;
     private Context context;
+    private DatabaseHelper dbHelper;
 
     public interface DataCallback {
         void onDataReceived(int bpm, int hour, int minute);
@@ -57,6 +58,7 @@ public class BLEManager {
         return instance;
     }
     public BLEManager(Context context) {
+        dbHelper = new DatabaseHelper(context);
         this.context = context;
         BluetoothManager bluetoothManager = (BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE);
         if (bluetoothManager != null) {
@@ -126,39 +128,46 @@ public class BLEManager {
                     String receivedData = new String(rawData, StandardCharsets.UTF_8);
                     Log.d(TAG, "Data received from ESP: " + receivedData);
 
-                    String[] parts = receivedData.split(",");
-                    if (parts.length == 3) { // Expected format: "BPM,Hour,Minute"
-                        try {
-                            int bpm = (int) Double.parseDouble(parts[0]); // Convert BPM to int
-                            int hour = Integer.parseInt(parts[1]);
-                            int minute = Integer.parseInt(parts[2]);
+                    if (receivedData.matches("\\d{2,3}, \\d{1,2}, \\d{1,2}")) {
+                        String[] parts = receivedData.split(",");
+                        if (parts.length == 3) { // Expected format: "BPM,Hour,Minute"
+                            try {
+                                int bpm = (int) Double.parseDouble(parts[0]); // Convert BPM to int
+                                int hour = Integer.parseInt(parts[1]);
+                                int minute = Integer.parseInt(parts[2]);
 
-                            // Generate timestamp using received hour and minute
-                            String timestamp = generateTimestampFromESP(hour, minute);
+                                // Generate timestamp using received hour and minute
+                                String timestamp = generateTimestampFromESP(hour, minute);
 
-                            // Save BPM & timestamp to database
-                            if (context instanceof AlarmSetPage) {
-                                DatabaseHelper dbHelper = new DatabaseHelper(context);
-                                SharedPreferences sharedPreferences = context.getSharedPreferences("MyPreferences", Context.MODE_PRIVATE);
-                                String loggedInUsername = sharedPreferences.getString("LOGGED_IN_USERNAME", null);
-                                int userId = dbHelper.getUserIdByUsername(loggedInUsername);
-
-                                if (userId != -1) {
-                                    dbHelper.insertSensorData(userId, bpm, timestamp);
-                                    Log.d(TAG, "BPM saved to database: " + bpm + " at " + timestamp);
-                                    // Trigger Graph Update
-                                    ((HomePage) context).runOnUiThread(() -> ((HomePage) context).updateGraph());
-                                } else {
-                                    Log.e(TAG, "Failed to get user ID. BPM not saved.");
+                                if (context instanceof HomePage) {
+                                    HomePage homePage = (HomePage) context;
+                                    homePage.insertActualData(dbHelper, homePage.getUserId(), bpm, hour, minute);
                                 }
-                            }
+                                // Save BPM & timestamp to database
+                                if (context instanceof AlarmSetPage) {
+                                    DatabaseHelper dbHelper = new DatabaseHelper(context);
+                                    SharedPreferences sharedPreferences = context.getSharedPreferences("MyPreferences", Context.MODE_PRIVATE);
+                                    String loggedInUsername = sharedPreferences.getString("LOGGED_IN_USERNAME", null);
+                                    int userId = dbHelper.getUserIdByUsername(loggedInUsername);
 
-                            // Pass data to UI if needed
-                            if (dataCallback != null) {
-                                dataCallback.onDataReceived(bpm, hour, minute);
+
+                                    if (userId != -1) {
+                                        dbHelper.insertSensorData(userId, bpm, timestamp);
+                                        Log.d(TAG, "BPM saved to database: " + bpm + " at " + timestamp);
+                                        // Trigger Graph Update
+                                        ((HomePage) context).runOnUiThread(() -> ((HomePage) context).updateGraph());
+                                    } else {
+                                        Log.e(TAG, "Failed to get user ID. BPM not saved.");
+                                    }
+                                }
+
+                                // Pass data to UI if needed
+                                if (dataCallback != null) {
+                                    dataCallback.onDataReceived(bpm, hour, minute);
+                                }
+                            } catch (NumberFormatException e) {
+                                Log.e(TAG, "Invalid data format: " + receivedData);
                             }
-                        } catch (NumberFormatException e) {
-                            Log.e(TAG, "Invalid data format: " + receivedData);
                         }
                     }
                 }

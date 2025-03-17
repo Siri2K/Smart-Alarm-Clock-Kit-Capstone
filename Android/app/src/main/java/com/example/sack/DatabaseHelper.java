@@ -495,6 +495,22 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         cursor.close();
         return bulbData;
     }
+    public void printHeartbeatTable() {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT * FROM Heartbeat_sensor", null);
 
+        if (cursor != null && cursor.moveToFirst()) {
+            do {
+                @SuppressLint("Range") int userId = cursor.getInt(cursor.getColumnIndex("user_id"));
+                @SuppressLint("Range") int bpm = cursor.getInt(cursor.getColumnIndex("sensor_data"));
+                @SuppressLint("Range") String timestamp = cursor.getString(cursor.getColumnIndex("timestamp"));
+
+                Log.d("DatabaseDebug", "UserID: " + userId + " | BPM: " + bpm + " | Timestamp: " + timestamp);
+            } while (cursor.moveToNext());
+            cursor.close();
+        } else {
+            Log.d("DatabaseDebug", "No data found in Heartbeat_sensor table.");
+        }
+    }
 
 }

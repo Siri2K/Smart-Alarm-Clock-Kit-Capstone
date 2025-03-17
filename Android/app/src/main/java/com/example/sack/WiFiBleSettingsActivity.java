@@ -1,7 +1,6 @@
 package com.example.sack;
 
 import android.os.Bundle;
-import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
@@ -9,9 +8,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
-import java.util.List;
-
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 public class WiFiBleSettingsActivity extends AppCompatActivity {
 
     private EditText etSSID, etPassword, etMacAddress, etSKU, etApiKey;
@@ -26,6 +23,8 @@ public class WiFiBleSettingsActivity extends AppCompatActivity {
         setContentView(R.layout.wifiblesettings); // Ensure this matches your XML file name
 
         dbHelper = new DatabaseHelper(this);
+        BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
+        NavigationBar.setupNavigation(this, bottomNavigationView);
 
         // Initialize UI components
         etSSID = findViewById(R.id.et_ssid);
