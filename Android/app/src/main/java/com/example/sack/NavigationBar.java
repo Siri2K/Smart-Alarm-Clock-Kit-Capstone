@@ -49,6 +49,10 @@ public class NavigationBar {
             intent = new Intent(activity, ConnectToDevice.class);
         } else if (id == R.id.nav_profile) {
             intent = new Intent(activity, ProfileActivity.class);
+        } else if (id == R.id.nav_wifi_ble && !(activity instanceof WiFiBleSettingsActivity)) {
+            activity.startActivity(new Intent(activity, WiFiBleSettingsActivity.class));
+        } else {
+            return false;
         }
 
         if (intent != null) {
@@ -66,6 +70,7 @@ public class NavigationBar {
         if (activity instanceof AlarmSetPage) return R.id.nav_alarm;
         if (activity instanceof ConnectToDevice) return R.id.nav_ConnectToDevice;
         if (activity instanceof ProfileActivity) return R.id.nav_profile;
+        if (activity instanceof WiFiBleSettingsActivity) return R.id.nav_wifi_ble;
         return -1;
     }
 }
