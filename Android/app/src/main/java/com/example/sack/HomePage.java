@@ -37,7 +37,7 @@ public class HomePage extends AppCompatActivity {
         NavigationBar.setupNavigation(this, bottomNavigationView);
         lineChart = findViewById(R.id.lineChart);
         SharedPreferences sharedPreferences = getSharedPreferences("MyPreferences", MODE_PRIVATE);
-        String username = sharedPreferences.getString("USERNAME", "default_username"); // Default if not found
+        String username = sharedPreferences.getString("LOGGED_IN_USERNAME", "default_username");
         dbHelper = new DatabaseHelper(this);
         userId = dbHelper.getUserIdByUsername(username);
         dbHelper.printAllTables();
