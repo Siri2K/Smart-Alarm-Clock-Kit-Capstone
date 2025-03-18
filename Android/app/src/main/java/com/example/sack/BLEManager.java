@@ -136,13 +136,6 @@ public class BLEManager {
                                 int hour = Integer.parseInt(parts[1]);
                                 int minute = Integer.parseInt(parts[2]);
 
-                                // Generate timestamp using received hour and minute
-                                String timestamp = generateTimestampFromESP(hour, minute);
-
-                                if (context instanceof HomePage) {
-                                    HomePage homePage = (HomePage) context;
-                                    homePage.insertActualData(dbHelper, homePage.getUserId(), bpm, hour, minute);
-                                }
                                 // Save BPM & timestamp to database
                                 if (context instanceof AlarmSetPage) {
                                     DatabaseHelper dbHelper = new DatabaseHelper(context);
