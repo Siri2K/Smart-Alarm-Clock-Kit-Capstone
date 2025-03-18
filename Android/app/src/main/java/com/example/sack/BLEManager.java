@@ -141,7 +141,19 @@ public class BLEManager {
                                 // Save BPM & timestamp to database
                                 SharedPreferences sharedPreferences = context.getSharedPreferences("MyPreferences", Context.MODE_PRIVATE);
                                 String loggedInUsername = sharedPreferences.getString("LOGGED_IN_USERNAME", null);
+
+                                if (loggedInUsername == null || loggedInUsername.isEmpty()) {
+                                    Log.e(TAG, "ERROR: LOGGED_IN_USERNAME is null or empty! Cannot retrieve user ID.");
+                                    return;
+                                }
+
                                 int userId = dbHelper.getUserIdByUsername(loggedInUsername);
+
+                                if (userId == -1) {
+                                    Log.e(TAG, "ERROR: No user found for username: " + loggedInUsername);
+                                    return;
+                                }
+
 
                                 if (userId != -1) {
                                     long result = dbHelper.insertSensorData(userId, bpm, hour, minute);

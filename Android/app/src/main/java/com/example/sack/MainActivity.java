@@ -58,7 +58,7 @@ private DatabaseHelper dbHelper;
                     Toast.makeText(this, "Login Successful!", Toast.LENGTH_SHORT).show();
                     SharedPreferences sharedPreferences = getSharedPreferences("MyPreferences", MODE_PRIVATE);
                     SharedPreferences.Editor editor = sharedPreferences.edit();
-                    editor.putString("USERNAME", username); // Save username
+                    editor.putString("LOGGED_IN_USERNAME", username); // Store username on login
                     editor.apply();
                     Intent intent = new Intent(MainActivity.this, HomePage.class);
                     startActivity(intent);
