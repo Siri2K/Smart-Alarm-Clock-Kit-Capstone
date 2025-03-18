@@ -14,8 +14,8 @@ import java.util.List;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
 
-    private static final String DATABASE_NAME = "Alarm_DB";
-    private static final int DATABASE_VERSION = 6;
+    private static final String DATABASE_NAME = "SACK_Database";
+    private static final int DATABASE_VERSION = 7;
 
     // Table Names
     private static final String TABLE_HEARTBEAT = "Heartbeat_sensor";
@@ -63,13 +63,14 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String CREATE_USERS_TABLE =
             "CREATE TABLE " + TABLE_USERS + " (" +
                     COLUMN_USER_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                    COLUMN_FULL_NAME + " TEXT NOT NULL, " +  // Added space between column name and type
+                    COLUMN_FULL_NAME + " TEXT NOT NULL, " +
                     COLUMN_USERNAME + " TEXT NOT NULL, " +
                     COLUMN_PASSWORD + " TEXT NOT NULL, " +
                     COLUMN_SECURITY_QUESTION + " TEXT, " +
                     COLUMN_SECURITY_ANSWER + " TEXT, " +
-                    COLUMN_AGE + " INTEGER, " +  // Added space between column name and type
-                    COLUMN_Gender + " TEXT," + COLUMN_CONDITION + " TEXT);";   // Corrected "Text" to "TEXT"
+                    COLUMN_AGE + " INTEGER, " +
+                    COLUMN_Gender + " TEXT, " +  // Ensure space before "TEXT"
+                    COLUMN_CONDITION + " TEXT);";
 
 
     // Heartbeat Sensor Table Creation
@@ -79,7 +80,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                     COLUMN_USER_REF_ID + " INTEGER NOT NULL, " +
                     COLUMN_SENSOR_DATA + " REAL, " +
                     COLUMN_TIMESTAMP + " TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
-                    "FOREIGN KEY (" + COLUMN_USER_REF_ID + ") REFERENCES " + TABLE_USERS + "(" + COLUMN_USER_ID + "));";
+                    "FOREIGN KEY (" + COLUMN_USER_REF_ID + ") REFERENCES " + TABLE_USERS + "(" + COLUMN_USER_ID + ") ON DELETE CASCADE);";
+
 
     // Alarms Table Creation
     private static final String CREATE_ALARM_TABLE =
@@ -118,11 +120,11 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        db.execSQL(CREATE_USERS_TABLE);
-        db.execSQL(CREATE_HEARTBEAT_TABLE);
-        db.execSQL(CREATE_ALARM_TABLE);
-        db.execSQL(CREATE_WIFI_TABLE);
-        db.execSQL(CREATE_BULB_TABLE);
+            db.execSQL(CREATE_USERS_TABLE);
+            db.execSQL(CREATE_HEARTBEAT_TABLE);
+            db.execSQL(CREATE_ALARM_TABLE);
+            db.execSQL(CREATE_WIFI_TABLE);
+            db.execSQL(CREATE_BULB_TABLE);
     }
 
     @Override
@@ -255,19 +257,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return alarmList;
     }
 
-
-
-
-    // Update Alarm
-    public boolean updateAlarm(int alarmId, long newTime, String newLabel) {
-        SQLiteDatabase db = this.getWritableDatabase();
-        ContentValues values = new ContentValues();
-        values.put(COLUMN_ALARM_TIME, newTime);
-        values.put(COLUMN_ALARM_LABEL, newLabel);
-        int rowsAffected = db.update(TABLE_ALARMS, values, COLUMN_ALARM_ID + "=?", new String[]{String.valueOf(alarmId)});
-        return rowsAffected > 0;
-    }
-
     // Enable or Disable Alarm
     public void updateAlarmStatus(int alarmId, boolean isEnabled) {
         SQLiteDatabase db = this.getWritableDatabase();
@@ -316,20 +305,20 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return null; // User not found
     }
 
-    // Verify Security Answer
-    public boolean verifySecurityAnswer(String username, String answer) {
-        if (username == null || answer == null) {
-            return false; // Prevent null values
-        }
-
-        SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT 1 FROM " + TABLE_USERS + " WHERE " + COLUMN_USERNAME + "=? AND " + COLUMN_SECURITY_ANSWER + "=?",
-                new String[]{username, answer});
-
-        boolean exists = cursor.moveToFirst();
-        cursor.close();
-        return exists;
-    }
+//    // Verify Security Answer
+//    public boolean verifySecurityAnswer(String username, String answer) {
+//        if (username == null || answer == null) {
+//            return false; // Prevent null values
+//        }
+//
+//        SQLiteDatabase db = this.getReadableDatabase();
+//        Cursor cursor = db.rawQuery("SELECT 1 FROM " + TABLE_USERS + " WHERE " + COLUMN_USERNAME + "=? AND " + COLUMN_SECURITY_ANSWER + "=?",
+//                new String[]{username, answer});
+//
+//        boolean exists = cursor.moveToFirst();
+//        cursor.close();
+//        return exists;
+//    }
 
     // Reset Password
     public boolean resetPassword(String username, String newPassword) {
@@ -495,22 +484,19 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         cursor.close();
         return bulbData;
     }
-    public void printHeartbeatTable() {
+    public void printAllTables() {
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT * FROM Heartbeat_sensor", null);
+        Cursor cursor = db.rawQuery("SELECT name FROM sqlite_master WHERE type='table'", null);
 
-        if (cursor != null && cursor.moveToFirst()) {
+        if (cursor.moveToFirst()) {
             do {
-                @SuppressLint("Range") int userId = cursor.getInt(cursor.getColumnIndex("user_id"));
-                @SuppressLint("Range") int bpm = cursor.getInt(cursor.getColumnIndex("sensor_data"));
-                @SuppressLint("Range") String timestamp = cursor.getString(cursor.getColumnIndex("timestamp"));
-
-                Log.d("DatabaseDebug", "UserID: " + userId + " | BPM: " + bpm + " | Timestamp: " + timestamp);
+                @SuppressLint("Range") String tableName = cursor.getString(cursor.getColumnIndex("name"));
+                Log.d("DatabaseDebug", "Found Table: " + tableName);
             } while (cursor.moveToNext());
-            cursor.close();
         } else {
-            Log.d("DatabaseDebug", "No data found in Heartbeat_sensor table.");
+            Log.d("DatabaseDebug", "No tables found in the database.");
         }
+        cursor.close();
     }
 
 }

@@ -5,6 +5,7 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.TextView;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -19,6 +20,7 @@ import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.github.mikephil.charting.charts.LineChart;
 
+import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -55,7 +57,8 @@ public class HomePage extends AppCompatActivity {
         } else {
             welcomeMessage.setText("Welcome User");
         }
-
+        File databasePath = getDatabasePath("Alarm_DB");
+        Log.d("DatabaseDebug", "Database Path: " + databasePath.getAbsolutePath());
     }
 
     public void insertActualData(DatabaseHelper dbHelper, int userId, int bpm, int hour, int minute) {
@@ -64,8 +67,7 @@ public class HomePage extends AppCompatActivity {
 
         // Insert the actual BPM and timestamp into the database
         dbHelper.insertSensorData(userId, bpm, formattedTimestamp);
-        dbHelper.printHeartbeatTable();
-        System.out.println("DEBUG: Inserted actual BPM record - BPM: " + bpm + " at " + formattedTimestamp);
+        dbHelper.printAllTables();
     }
 
 
