@@ -135,31 +135,29 @@ public class BLEManager {
                                 int bpm = (int) Double.parseDouble(parts[0]); // Convert BPM to int
                                 int hour = Integer.parseInt(parts[1]);
                                 int minute = Integer.parseInt(parts[2]);
+                                Log.d(TAG, "Parsed Data - BPM: " + bpm + ", Hour: " + hour + ", Minute: " + minute);
 
                                 // Save BPM & timestamp to database
-                                if (context instanceof AlarmSetPage) {
-                                    DatabaseHelper dbHelper = new DatabaseHelper(context);
-                                    SharedPreferences sharedPreferences = context.getSharedPreferences("MyPreferences", Context.MODE_PRIVATE);
-                                    String loggedInUsername = sharedPreferences.getString("LOGGED_IN_USERNAME", null);
-                                    int userId = dbHelper.getUserIdByUsername(loggedInUsername);
+                                SharedPreferences sharedPreferences = context.getSharedPreferences("MyPreferences", Context.MODE_PRIVATE);
+                                String loggedInUsername = sharedPreferences.getString("LOGGED_IN_USERNAME", null);
+                                int userId = dbHelper.getUserIdByUsername(loggedInUsername);
 
-                                    if (userId != -1) {
-                                        dbHelper.insertSensorData(userId, bpm, hour, minute);
-                                        Log.d(TAG, "BPM saved to database: " + bpm + " at " + hour + ":" + minute);
-                                    } else {
-                                        Log.e(TAG, "Failed to get user ID. BPM not saved.");
-                                    }
-
-                                    // Update UI
-                                    if (dataCallback != null) {
-                                        dataCallback.onDataReceived(bpm, hour, minute);
-                                    }
+                                if (userId != -1) {
+                                    dbHelper.insertSensorData(userId, bpm, hour, minute);
+                                    Log.d(TAG, "BPM saved to database: " + bpm + " at " + hour + ":" + minute);
                                 } else {
-                                    Log.e(TAG, "Invalid data format after cleaning: " + receivedData);
+                                    Log.e(TAG, "Failed to get user ID. BPM not saved.");
+                                }
+
+                                // Update UI
+                                if (dataCallback != null) {
+                                    dataCallback.onDataReceived(bpm, hour, minute);
                                 }
                             } catch (Exception e) {
                                 Log.e(TAG, "Error decoding BLE data", e);
                             }
+                        } else {
+                            Log.e(TAG, "Invalid data format after cleaning: " + receivedData);
                         }
                     }
                 }
