@@ -35,10 +35,6 @@ public class ConnectToDevice extends AppCompatActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.connecttodevice);
-
-        bleManager = new BLEManager(this);
-        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-
         setupUI();
     }
 
@@ -48,6 +44,9 @@ public class ConnectToDevice extends AppCompatActivity {
         Button connectButton = findViewById(R.id.connectButton);
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
         NavigationBar.setupNavigation(this, bottomNavigationView);
+
+        bleManager = new BLEManager(this);
+        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
         // Restore the saved status message
         String savedStatus = getSharedPreferences("AppPrefs", MODE_PRIVATE)

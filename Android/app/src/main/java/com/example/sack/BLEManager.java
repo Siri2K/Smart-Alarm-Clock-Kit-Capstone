@@ -1,9 +1,7 @@
 package com.example.sack;
 
 import java.nio.charset.StandardCharsets;
-import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import java.util.Locale;
 import java.util.UUID;
 
 import android.app.Activity;
@@ -123,12 +121,35 @@ public class BLEManager {
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
             if (CHARACTERISTIC_UUID.equals(characteristic.getUuid())) {
+                SharedPreferences sharedPreferences = context.getSharedPreferences("MyPreferences", Context.MODE_PRIVATE);
+                String loggedInUsername = sharedPreferences.getString("LOGGED_IN_USERNAME", null);
+
+                if (loggedInUsername == null || loggedInUsername.isEmpty()) {
+                    Log.e(TAG, "ERROR: LOGGED_IN_USERNAME is null or empty! Cannot retrieve user ID.");
+                    return;
+                }
+
+                int userId = dbHelper.getUserIdByUsername(loggedInUsername);
+
+                if (userId == -1) {
+                    Log.e(TAG, "ERROR: No user found for username: " + loggedInUsername);
+                    return;
+                }
                 byte[] rawData = characteristic.getValue();
                 if (rawData != null) {
                     String receivedData = new String(rawData, StandardCharsets.UTF_8).trim();
                     Log.d(TAG, "Data received from ESP: " + receivedData);
 
-                    if (receivedData.matches("\\d{1,3},\\d{1,2},\\d{1,2}")) { // Fix Regex
+                    // Handle SLEEP signal
+                    if (receivedData.equals("SLEEP")) {
+                        handleSleepCommand(userId);
+                    }
+                    // Handle WAKE signal
+                    else if (receivedData.equals("WAKE")) {
+                        handleWakeCommand(userId);
+                    }
+
+                    else if (receivedData.matches("\\d{1,3},\\d{1,2},\\d{1,2}")) { // Fix Regex
                         String[] parts = receivedData.split(",");
                         if (parts.length == 3) { // Expected format: "BPM,Hour,Minute"
                             try {
@@ -139,20 +160,7 @@ public class BLEManager {
                                 Log.d(TAG, "Parsed Data - BPM: " + bpm + ", Hour: " + hour + ", Minute: " + minute);
 
                                 // Save BPM & timestamp to database
-                                SharedPreferences sharedPreferences = context.getSharedPreferences("MyPreferences", Context.MODE_PRIVATE);
-                                String loggedInUsername = sharedPreferences.getString("LOGGED_IN_USERNAME", null);
 
-                                if (loggedInUsername == null || loggedInUsername.isEmpty()) {
-                                    Log.e(TAG, "ERROR: LOGGED_IN_USERNAME is null or empty! Cannot retrieve user ID.");
-                                    return;
-                                }
-
-                                int userId = dbHelper.getUserIdByUsername(loggedInUsername);
-
-                                if (userId == -1) {
-                                    Log.e(TAG, "ERROR: No user found for username: " + loggedInUsername);
-                                    return;
-                                }
 
 
                                 if (userId != -1) {
@@ -194,7 +202,7 @@ public class BLEManager {
             }
         }
     };
-    public void sendDataToESP(String ssid, String password, String macAddress, String sku, String apiKey) {
+    public void sendWifiDataToESP(String ssid, String password, String macAddress, String sku, String apiKey) {
         if (characteristic == null || bluetoothGatt == null) {
             Log.e(TAG, "BLE characteristic not found.");
             return;
@@ -239,16 +247,28 @@ public class BLEManager {
         Log.d("BLEManager", "BLE connection state: " + connectionState);
         return connectionState == BluetoothProfile.STATE_CONNECTED;
     }
-    private String generateTimestampFromESP(int hour, int minute) {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+    private void handleSleepCommand(int userId) {
         Calendar calendar = Calendar.getInstance();
+        int sleepHour = calendar.get(Calendar.HOUR_OF_DAY);
+        int sleepMinute = calendar.get(Calendar.MINUTE);
 
-        // Use current date but replace hour and minute with ESP values
-        calendar.set(Calendar.HOUR_OF_DAY, hour);
-        calendar.set(Calendar.MINUTE, minute);
-        calendar.set(Calendar.SECOND, 0); // Set seconds to 0
+        dbHelper.insertSleepData(userId, sleepHour, sleepMinute);
+        Log.d(TAG, "User went to sleep at: " + sleepHour + ":" + sleepMinute);
 
-        return sdf.format(calendar.getTime()); // Return formatted timestamp
+        if (context instanceof HomePage) {
+            ((HomePage) context).runOnUiThread(() -> ((HomePage) context).updateSleepUI());
+        }
     }
+    private void handleWakeCommand(int userId) {
+        Calendar calendar = Calendar.getInstance();
+        int wakeHour = calendar.get(Calendar.HOUR_OF_DAY);
+        int wakeMinute = calendar.get(Calendar.MINUTE);
 
+        dbHelper.insertWakeData(userId, wakeHour, wakeMinute);
+        Log.d(TAG, "User woke up at: " + wakeHour + ":" + wakeMinute);
+
+        if (context instanceof HomePage) {
+            ((HomePage) context).runOnUiThread(() -> ((HomePage) context).updateSleepUI());
+        }
+    }
 }

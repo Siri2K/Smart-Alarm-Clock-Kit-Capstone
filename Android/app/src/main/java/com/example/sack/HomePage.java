@@ -9,7 +9,6 @@ import android.util.Log;
 import android.widget.TextView;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.components.YAxis;
 import com.github.mikephil.charting.data.Entry;
@@ -22,78 +21,65 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.Random;
 
 public class HomePage extends AppCompatActivity {
-    private int userId; // Make userId a class-level variable
+    private int userId;
     private DatabaseHelper dbHelper;
     private LineChart lineChart;
+    private TextView optimalBedtime, TimeAsleep, LastWeek, TimeAsleepRange, LastWeekRange;
+    private boolean useDummyData = true; // Set to false when using actual data
+
     @SuppressLint("SetTextI18n")
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.homepage);
+
         TextView welcomeMessage = findViewById(R.id.welcomeMessage);
+        optimalBedtime = findViewById(R.id.optimalBedtime);
+        TimeAsleep = findViewById(R.id.TimeAsleep);
+        LastWeek = findViewById(R.id.LastWeek);
+        TimeAsleepRange = findViewById(R.id.TimeAsleepRange);
+        LastWeekRange = findViewById(R.id.LastWeekRange);
+        lineChart = findViewById(R.id.lineChart);
+
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
         NavigationBar.setupNavigation(this, bottomNavigationView);
-        lineChart = findViewById(R.id.lineChart);
+
         SharedPreferences sharedPreferences = getSharedPreferences("MyPreferences", MODE_PRIVATE);
         String username = sharedPreferences.getString("LOGGED_IN_USERNAME", "default_username");
+
         dbHelper = new DatabaseHelper(this);
         userId = dbHelper.getUserIdByUsername(username);
         dbHelper.printAllTables();
+
         if (username != null && !username.isEmpty()) {
             welcomeMessage.setText("Welcome " + username);
 
             if (userId != -1) {
-                // Display the data on the graph
-                displayHeartbeatDataOnGraph(userId, dbHelper, lineChart);
+                displayHeartbeatDataOnGraph(userId);
+                updateSleepUI();
             }
         } else {
             welcomeMessage.setText("Welcome User");
         }
     }
 
-    // Display heartbeat data on the graph
-    private void displayHeartbeatDataOnGraph(int userId, DatabaseHelper dbHelper, LineChart lineChart) {
-        Cursor cursor = dbHelper.getSensorDataByUserId(userId);
-
-        Map<Integer, List<Double>> hourlyData = new TreeMap<>();
-        if (cursor != null && cursor.moveToFirst()) {
-            int bpmIndex = cursor.getColumnIndex("sensor_data");
-            int hourIndex = cursor.getColumnIndex("hour");
-            int minuteIndex = cursor.getColumnIndex("minute");
-
-            if (bpmIndex != -1 && hourIndex != -1 && minuteIndex != -1) {
-                do {
-                    double bpm = cursor.getDouble(bpmIndex);
-                    int hour = cursor.getInt(hourIndex);
-                //    int minute = cursor.getInt(minuteIndex);
-
-                    // Group data by hour
-                    hourlyData.putIfAbsent(hour, new ArrayList<>());
-                    hourlyData.get(hour).add(bpm);
-
-                } while (cursor.moveToNext());
-            }
-            cursor.close();
-        }
-
-        ArrayList<Entry> entries = new ArrayList<>();
+    // Display heartbeat data on the graph (with dummy mode toggle)
+    private void displayHeartbeatDataOnGraph(int userId) {
+        ArrayList<Entry> entries;
         ArrayList<String> hourLabels = new ArrayList<>();
 
-        for (Map.Entry<Integer, List<Double>> entry : hourlyData.entrySet()) {
-            int hour = entry.getKey();
-            List<Double> values = entry.getValue();
-            int avgHeartRate = (int) Math.round(values.stream().mapToDouble(Double::doubleValue).average().orElse(0.0));
-
-            // Use actual hour as x-value (convert to float for correct chart scaling)
-            entries.add(new Entry(hour, avgHeartRate));
-            hourLabels.add(String.valueOf(hour)); // Label for x-axis
+        if (useDummyData) {
+            entries = generateDummyData(hourLabels);
+        } else {
+            entries = getActualHeartbeatData(userId, hourLabels);
         }
 
         if (!entries.isEmpty()) {
             LineDataSet dataSet = new LineDataSet(entries, "Avg Heart Rate per Hour (bpm)");
-            dataSet.setColor(Color.RED);
+            dataSet.setColor(Color.BLUE);
             dataSet.setLineWidth(2f);
             dataSet.setDrawCircles(true);
 
@@ -101,19 +87,101 @@ public class HomePage extends AppCompatActivity {
             lineChart.setData(lineData);
 
             XAxis xAxis = lineChart.getXAxis();
-            xAxis.setValueFormatter(new IndexAxisValueFormatter(hourLabels)); // Show actual hours
+            xAxis.setValueFormatter(new IndexAxisValueFormatter(hourLabels));
             xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
-            xAxis.setGranularity(1f);  // Ensures each tick represents an hour
+            xAxis.setGranularity(1f);
             xAxis.setLabelCount(hourLabels.size(), true);
+            xAxis.setTextColor(Color.parseColor("#FF6B6B"));
 
-            lineChart.invalidate(); // Refresh chart
+            // Customize Y-Axis
+            YAxis yAxisLeft = lineChart.getAxisLeft();
+            yAxisLeft.setTextColor(Color.parseColor("#FF6B6B"));
+            YAxis yAxisRight = lineChart.getAxisRight();
+            yAxisRight.setTextColor(Color.parseColor("#FF6B6B"));
+
+            lineChart.invalidate();
         }
     }
+
+    // Generate Dummy Data for Testing
+    private ArrayList<Entry> generateDummyData(ArrayList<String> hourLabels) {
+        ArrayList<Entry> dummyEntries = new ArrayList<>();
+        Random random = new Random();
+
+        for (int i = 0; i < 10; i++) { // Generate 10 random hourly values
+            int hour = i + 1;
+            int bpm = random.nextInt(40) + 60; // Random heart rate between 60-100
+
+            dummyEntries.add(new Entry(hour, bpm));
+            hourLabels.add(String.valueOf(hour)); // Store labels for X-axis
+        }
+
+        return dummyEntries;
+    }
+
+    // Fetch Actual Data from Database
+    private ArrayList<Entry> getActualHeartbeatData(int userId, ArrayList<String> hourLabels) {
+        Cursor cursor = dbHelper.getSensorDataByUserId(userId);
+        Map<Integer, List<Double>> hourlyData = new TreeMap<>();
+
+        if (cursor != null && cursor.moveToFirst()) {
+            int bpmIndex = cursor.getColumnIndex("sensor_data");
+            int hourIndex = cursor.getColumnIndex("hour");
+
+            if (bpmIndex != -1 && hourIndex != -1) {
+                do {
+                    double bpm = cursor.getDouble(bpmIndex);
+                    int hour = cursor.getInt(hourIndex);
+
+                    hourlyData.putIfAbsent(hour, new ArrayList<>());
+                    hourlyData.get(hour).add(bpm);
+                } while (cursor.moveToNext());
+            }
+            cursor.close();
+        }
+
+        ArrayList<Entry> entries = new ArrayList<>();
+        for (Map.Entry<Integer, List<Double>> entry : hourlyData.entrySet()) {
+            int hour = entry.getKey();
+            List<Double> values = entry.getValue();
+            int avgHeartRate = (int) Math.round(values.stream().mapToDouble(Double::doubleValue).average().orElse(0.0));
+
+            entries.add(new Entry(hour, avgHeartRate));
+            hourLabels.add(String.valueOf(hour));
+        }
+
+        return entries;
+    }
+
     public void updateGraph() {
         runOnUiThread(() -> {
             Log.d("GraphDebug", "Updating Graph...");
-            displayHeartbeatDataOnGraph(userId, dbHelper, lineChart);
+            displayHeartbeatDataOnGraph(userId);
+        });
+    }
+    void updateSleepUI() {
+        int sleepDuration = dbHelper.getTimeAsleep(userId);
+        String avgSleepTime = dbHelper.getAvgSleepTime(userId);
+        int avgSleepDuration = dbHelper.getAvgSleepDuration(userId);
+
+        runOnUiThread(() -> {
+            if (sleepDuration > 0) {
+                TimeAsleep.setText(sleepDuration + " hours");
+            } else {
+                TimeAsleep.setText("No Data Yet");
+            }
+
+            if (!avgSleepTime.equals("No Data")) {
+                optimalBedtime.setText("Optimal Bedtime: " + avgSleepTime);
+            } else {
+                optimalBedtime.setText("No Data Yet");
+            }
+
+            if (avgSleepDuration > 0) {
+                LastWeek.setText(avgSleepDuration + " hours");
+            } else {
+                LastWeek.setText("No Data Yet");
+            }
         });
     }
 }
-

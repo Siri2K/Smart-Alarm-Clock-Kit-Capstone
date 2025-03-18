@@ -8,8 +8,11 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
 
@@ -23,6 +26,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String TABLE_ALARMS = "alarms";
     private static final String TABLE_WIFI = "wifi_settings";
     private static final String TABLE_BULB = "bulb_settings";
+    private static final String TABLE_SLEEP = "sleep_data";
     // Users Table Columns
     private static final String COLUMN_USER_ID = "user_id";
     private static final String COLUMN_FULL_NAME = "full_name";
@@ -59,6 +63,14 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String COLUMN_MAC_ADDRESS = "mac_address";
     private static final String COLUMN_SKU = "sku";
     private static final String COLUMN_API_KEY = "api_key";
+
+    //Sleep time Columns
+    private static final String COLUMN_SLEEP_ID = "sleep_id";
+    private static final String COLUMN_SLEEP_HOUR = "sleep_hour";
+    private static final String COLUMN_SLEEP_MINUTE = "sleep_minute";
+    private static final String COLUMN_WAKE_HOUR = "wake_hour";
+    private static final String COLUMN_WAKE_MINUTE = "wake_minute";
+    private static final String COLUMN_DATE = "date";
 
     // Users Table Creation
     private static final String CREATE_USERS_TABLE =
@@ -112,7 +124,17 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                     COLUMN_SKU + " TEXT NOT NULL, " +
                     COLUMN_API_KEY + " TEXT NOT NULL);";
 
-
+//Sleep time Table Creation
+private static final String CREATE_SLEEP_TABLE =
+        "CREATE TABLE " + TABLE_SLEEP + " (" +
+                COLUMN_SLEEP_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                COLUMN_USER_REF_ID + " INTEGER NOT NULL, " +
+                COLUMN_DATE + " TEXT NOT NULL, " +
+                COLUMN_SLEEP_HOUR + " INTEGER, " +
+                COLUMN_SLEEP_MINUTE + " INTEGER, " +
+                COLUMN_WAKE_HOUR + " INTEGER, " +
+                COLUMN_WAKE_MINUTE + " INTEGER, " +
+                "FOREIGN KEY (" + COLUMN_USER_REF_ID + ") REFERENCES " + TABLE_USERS + "(" + COLUMN_USER_ID + "));";
 
 
     public DatabaseHelper(Context context) {
@@ -310,20 +332,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return null; // User not found
     }
 
-//    // Verify Security Answer
-//    public boolean verifySecurityAnswer(String username, String answer) {
-//        if (username == null || answer == null) {
-//            return false; // Prevent null values
-//        }
-//
-//        SQLiteDatabase db = this.getReadableDatabase();
-//        Cursor cursor = db.rawQuery("SELECT 1 FROM " + TABLE_USERS + " WHERE " + COLUMN_USERNAME + "=? AND " + COLUMN_SECURITY_ANSWER + "=?",
-//                new String[]{username, answer});
-//
-//        boolean exists = cursor.moveToFirst();
-//        cursor.close();
-//        return exists;
-//    }
 
     // Reset Password
     public boolean resetPassword(String username, String newPassword) {
@@ -503,6 +511,75 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         }
         cursor.close();
     }
+    public void insertSleepData(int userId, int sleepHour, int sleepMinute) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(COLUMN_USER_REF_ID, userId);
+        values.put(COLUMN_DATE, getCurrentDate());  // Store today's date
+        values.put(COLUMN_SLEEP_HOUR, sleepHour);
+        values.put(COLUMN_SLEEP_MINUTE, sleepMinute);
+        db.insert(TABLE_SLEEP, null, values);
+    }
+    public void insertWakeData(int userId, int wakeHour, int wakeMinute) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(COLUMN_WAKE_HOUR, wakeHour);
+        values.put(COLUMN_WAKE_MINUTE, wakeMinute);
 
+        db.update(TABLE_SLEEP, values, COLUMN_USER_REF_ID + "=? AND " + COLUMN_DATE + "=?",
+                new String[]{String.valueOf(userId), getCurrentDate()});
+    }
 
+    public int getTimeAsleep(int userId) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT sleep_hour, sleep_minute, wake_hour, wake_minute FROM sleep_data WHERE user_id=? ORDER BY date DESC LIMIT 1",
+                new String[]{String.valueOf(userId)});
+
+        if (cursor.moveToFirst()) {
+            int sleepHour = cursor.getInt(0);
+            int sleepMinute = cursor.getInt(1);
+            int wakeHour = cursor.getInt(2);
+            int wakeMinute = cursor.getInt(3);
+            cursor.close();
+
+            int sleepMinutes = (sleepHour * 60) + sleepMinute;
+            int wakeMinutes = (wakeHour * 60) + wakeMinute;
+
+            return (wakeMinutes >= sleepMinutes) ? (wakeMinutes - sleepMinutes) / 60 : (1440 - sleepMinutes + wakeMinutes) / 60;
+        }
+        cursor.close();
+        return 0;
+    }
+    public int getAvgSleepDuration(int userId) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT AVG((wake_hour * 60 + wake_minute) - (sleep_hour * 60 + sleep_minute)) FROM sleep_data WHERE user_id=?",
+                new String[]{String.valueOf(userId)});
+
+        if (cursor.moveToFirst()) {
+            int avgMinutes = cursor.getInt(0);
+            cursor.close();
+            return avgMinutes / 60; // Convert minutes to hours
+        }
+        cursor.close();
+        return 0;
+    }
+
+    public String getAvgSleepTime(int userId) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT AVG(sleep_hour), AVG(sleep_minute) FROM sleep_data WHERE user_id=?",
+                new String[]{String.valueOf(userId)});
+
+        if (cursor.moveToFirst()) {
+            int avgHour = cursor.getInt(0);
+            int avgMinute = cursor.getInt(1);
+            cursor.close();
+            return String.format("%02d:%02d", avgHour, avgMinute);
+        }
+        cursor.close();
+        return "No Data";
+    }
+    public String getCurrentDate() {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        return dateFormat.format(new Date());
+    }
 }

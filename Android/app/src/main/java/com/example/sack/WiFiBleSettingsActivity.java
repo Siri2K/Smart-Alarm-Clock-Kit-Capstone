@@ -16,12 +16,12 @@ public class WiFiBleSettingsActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
     private DeviceAdapter deviceAdapter;
     private DatabaseHelper dbHelper;
-
+    private BLEManager bleManager;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.wifiblesettings); // Ensure this matches your XML file name
-
+        bleManager = new BLEManager(this);
         dbHelper = new DatabaseHelper(this);
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
         NavigationBar.setupNavigation(this, bottomNavigationView);
@@ -44,7 +44,9 @@ public class WiFiBleSettingsActivity extends AppCompatActivity {
         loadSavedData();
 
         // Update button click listener
-        btnUpdate.setOnClickListener(v -> saveData());
+        btnUpdate.setOnClickListener(v -> {
+            saveData();
+        });
 
         // Clear button click listener
         btnClear.setOnClickListener(v -> clearFields());
@@ -92,7 +94,7 @@ public class WiFiBleSettingsActivity extends AppCompatActivity {
         // Save to database
         dbHelper.saveOrUpdateWiFiSettings(ssid, password);
         dbHelper.saveOrUpdateBulbSettings(macAddress, sku, apiKey);
-
+        bleManager.sendWifiDataToESP(ssid, password, macAddress, sku, apiKey);
         // Show confirmation
         Toast.makeText(this, "Settings Updated Successfully!", Toast.LENGTH_SHORT).show();
     }

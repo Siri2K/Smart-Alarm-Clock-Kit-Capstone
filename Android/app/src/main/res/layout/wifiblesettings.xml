@@ -194,7 +194,7 @@
         android:layout_height="50dp"
         android:layout_marginTop="70dp"
         android:backgroundTint="#FF6B6B"
-        android:text="Update Information"
+        android:text="Update and Send to Clock"
         android:textColor="#FFFFFF"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
