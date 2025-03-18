@@ -37,7 +37,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String COLUMN_SENSOR_ID = "sensor_id";
     private static final String COLUMN_USER_REF_ID = "user_id"; // Foreign Key
     private static final String COLUMN_SENSOR_DATA = "sensor_data";
-    private static final String COLUMN_TIMESTAMP = "timestamp";
+    private static final String COLUMN_HOUR = "hour";
+    private static final String COLUMN_MINUTE = "minute";
 
     // Alarms Table Columns
     private static final String COLUMN_ALARM_ID = "alarm_id";
@@ -79,9 +80,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                     COLUMN_SENSOR_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
                     COLUMN_USER_REF_ID + " INTEGER NOT NULL, " +
                     COLUMN_SENSOR_DATA + " REAL, " +
-                    COLUMN_TIMESTAMP + " TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
+                    COLUMN_HOUR + " INTEGER NOT NULL, " +  // New column for Hour
+                    COLUMN_MINUTE + " INTEGER NOT NULL, " + // New column for Minute
                     "FOREIGN KEY (" + COLUMN_USER_REF_ID + ") REFERENCES " + TABLE_USERS + "(" + COLUMN_USER_ID + ") ON DELETE CASCADE);";
-
 
     // Alarms Table Creation
     private static final String CREATE_ALARM_TABLE =
@@ -173,17 +174,18 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     // Insert Sensor Data
-    public long insertSensorData(int userId, int bpm, String timestamp) {
+    public long insertSensorData(int userId, int bpm, int hour, int minute) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
-        values.put("user_id", userId);
-        values.put("sensor_data", bpm);
-        values.put("timestamp", timestamp);
+        values.put(COLUMN_USER_REF_ID, userId);
+        values.put(COLUMN_SENSOR_DATA, bpm);
+        values.put(COLUMN_HOUR, hour);
+        values.put(COLUMN_MINUTE, minute);
 
-        long result = db.insert("Heartbeat_sensor", null, values);
+        long result = db.insert(TABLE_HEARTBEAT, null, values);
 
         if (result != -1) {
-            Log.d("DatabaseHelper", "BPM inserted successfully: " + bpm + " at " + timestamp);
+            Log.d("DatabaseHelper", "BPM inserted successfully: " + bpm + " at " + hour + ":" + minute);
         } else {
             Log.e("DatabaseHelper", "Failed to insert BPM.");
         }
@@ -194,11 +196,14 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
 
 
+
     // Get Sensor Data for a User
     public Cursor getSensorDataByUserId(int userId) {
         SQLiteDatabase db = this.getReadableDatabase();
-        return db.rawQuery("SELECT * FROM " + TABLE_HEARTBEAT + " WHERE " + COLUMN_USER_REF_ID + "=?", new String[]{String.valueOf(userId)});
+        return db.rawQuery("SELECT sensor_data, hour, minute FROM " + TABLE_HEARTBEAT +
+                " WHERE " + COLUMN_USER_REF_ID + "=?", new String[]{String.valueOf(userId)});
     }
+
 
     // Insert Alarm with Custom Sound & Vibration
     public long insertAlarm(int userId, String time, String label, String repeatDays, String alarmSound, boolean vibrate) {

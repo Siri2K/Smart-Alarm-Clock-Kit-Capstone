@@ -61,37 +61,25 @@ public class HomePage extends AppCompatActivity {
         Log.d("DatabaseDebug", "Database Path: " + databasePath.getAbsolutePath());
     }
 
-    public void insertActualData(DatabaseHelper dbHelper, int userId, int bpm, int hour, int minute) {
-        // Generate actual timestamp using ESP-provided hour & minute
-        String formattedTimestamp = generateTimestampFromESP(hour, minute);
-
-        // Insert the actual BPM and timestamp into the database
-        dbHelper.insertSensorData(userId, bpm, formattedTimestamp);
-        dbHelper.printAllTables();
-    }
-
-
     // Display heartbeat data on the graph
     private void displayHeartbeatDataOnGraph(int userId, DatabaseHelper dbHelper, LineChart lineChart) {
         Cursor cursor = dbHelper.getSensorDataByUserId(userId);
 
-        // TreeMap keeps the data sorted by timestamp
-        Map<String, List<Double>> hourlyData = new TreeMap<>();
+        Map<Integer, List<Double>> hourlyData = new TreeMap<>();
         if (cursor != null && cursor.moveToFirst()) {
-            int sensorDataIndex = cursor.getColumnIndex("sensor_data");
-            int timestampIndex = cursor.getColumnIndex("timestamp");
+            int bpmIndex = cursor.getColumnIndex("sensor_data");
+            int hourIndex = cursor.getColumnIndex("hour");
+            int minuteIndex = cursor.getColumnIndex("minute");
 
-            if (sensorDataIndex != -1 && timestampIndex != -1) {
+            if (bpmIndex != -1 && hourIndex != -1 && minuteIndex != -1) {
                 do {
-                    double sensorData = cursor.getDouble(sensorDataIndex);
-                    String timestamp = cursor.getString(timestampIndex);
-
-                    // Extract only hour from the timestamp (HH:00 format)
-                    String hour = formatTimestampToHour(timestamp);
+                    double bpm = cursor.getDouble(bpmIndex);
+                    int hour = cursor.getInt(hourIndex);
+                    int minute = cursor.getInt(minuteIndex);
 
                     // Group data by hour
                     hourlyData.putIfAbsent(hour, new ArrayList<>());
-                    hourlyData.get(hour).add(sensorData);
+                    hourlyData.get(hour).add(bpm);
 
                 } while (cursor.moveToNext());
             }
@@ -100,84 +88,36 @@ public class HomePage extends AppCompatActivity {
 
         ArrayList<Entry> entries = new ArrayList<>();
         ArrayList<String> hourLabels = new ArrayList<>();
-        int hourCounter = 1; // Start from hour 1
 
-        for (Map.Entry<String, List<Double>> entry : hourlyData.entrySet()) {
-            String hour = entry.getKey(); // Hour in HH:00 format
+        for (Map.Entry<Integer, List<Double>> entry : hourlyData.entrySet()) {
+            int hour = entry.getKey();
             List<Double> values = entry.getValue();
-
-            // Calculate average BPM for the hour
             int avgHeartRate = (int) Math.round(values.stream().mapToDouble(Double::doubleValue).average().orElse(0.0));
 
-            // Add data points for the graph
-            entries.add(new Entry(hourCounter, avgHeartRate));
-            hourLabels.add(String.valueOf(Integer.parseInt(hour)));
-
-            hourCounter++;
-            if (hourCounter > 12) break; // Show only the latest 12 hours
+            // Use actual hour as x-value (convert to float for correct chart scaling)
+            entries.add(new Entry(hour, avgHeartRate));
+            hourLabels.add(String.valueOf(hour)); // Label for x-axis
         }
 
         if (!entries.isEmpty()) {
             LineDataSet dataSet = new LineDataSet(entries, "Avg Heart Rate per Hour (bpm)");
             dataSet.setColor(Color.RED);
             dataSet.setLineWidth(2f);
-            dataSet.setDrawValues(false);
             dataSet.setDrawCircles(true);
-            dataSet.setDrawVerticalHighlightIndicator(true);
 
             LineData lineData = new LineData(dataSet);
-            lineData.setValueFormatter(new IntegerValueFormatter());
             lineChart.setData(lineData);
-            System.out.println("DEBUG: Hour Labels: " + hourLabels);
+
             XAxis xAxis = lineChart.getXAxis();
-            xAxis.setTextColor(Color.WHITE);
-            xAxis.setAxisLineColor(Color.RED);
-            xAxis.setGridColor(Color.DKGRAY);
-            xAxis.setLabelCount(hourLabels.size(), true);
-            xAxis.setGranularity(1f);
+            xAxis.setValueFormatter(new IndexAxisValueFormatter(hourLabels)); // Show actual hours
             xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
-            xAxis.setValueFormatter(new IndexAxisValueFormatter(hourLabels)); // Ensure formatted labels
-            xAxis.setAvoidFirstLastClipping(true);
-            xAxis.setLabelRotationAngle(0);
+            xAxis.setGranularity(1f);  // Ensures each tick represents an hour
+            xAxis.setLabelCount(hourLabels.size(), true);
 
-
-
-            // Customize the Y-axis
-            YAxis leftAxis = lineChart.getAxisLeft();
-            leftAxis.setValueFormatter(new IntegerValueFormatter());
-            leftAxis.setTextColor(Color.WHITE);
-            leftAxis.setAxisLineColor(Color.RED);
-            leftAxis.setGridColor(Color.DKGRAY);
-
-            YAxis rightAxis = lineChart.getAxisRight();
-            rightAxis.setEnabled(false);
-
-            // Customize legend and appearance
-            Legend legend = lineChart.getLegend();
-            legend.setTextColor(Color.WHITE);
-
-            System.out.println("Hour Labels: " + hourLabels);
-            System.out.println("Entries: " + entries);
-
-            // Refresh the chart
-            lineChart.getDescription().setEnabled(false);
-            lineChart.invalidate();
-        } else {
-            System.out.println("DEBUG: No valid data to display on the graph.");
+            lineChart.invalidate(); // Refresh chart
         }
     }
-    private String formatTimestampToHour(String timestamp) {
-        try {
-            SimpleDateFormat inputFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
-            SimpleDateFormat outputFormat = new SimpleDateFormat("H", Locale.getDefault());
 
-            Date date = inputFormat.parse(timestamp);
-            return outputFormat.format(date); // Returns formatted hour like "08:00"
-        } catch (Exception e) {
-            e.printStackTrace();
-            return timestamp; // Return original timestamp if parsing fails
-        }
-    }
 
 
 

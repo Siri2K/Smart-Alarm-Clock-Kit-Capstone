@@ -150,23 +150,22 @@ public class BLEManager {
                                     String loggedInUsername = sharedPreferences.getString("LOGGED_IN_USERNAME", null);
                                     int userId = dbHelper.getUserIdByUsername(loggedInUsername);
 
-
                                     if (userId != -1) {
-                                        dbHelper.insertSensorData(userId, bpm, timestamp);
-                                        Log.d(TAG, "BPM saved to database: " + bpm + " at " + timestamp);
-                                        // Trigger Graph Update
-                                        ((HomePage) context).runOnUiThread(() -> ((HomePage) context).updateGraph());
+                                        dbHelper.insertSensorData(userId, bpm, hour, minute);
+                                        Log.d(TAG, "BPM saved to database: " + bpm + " at " + hour + ":" + minute);
                                     } else {
                                         Log.e(TAG, "Failed to get user ID. BPM not saved.");
                                     }
-                                }
 
-                                // Pass data to UI if needed
-                                if (dataCallback != null) {
-                                    dataCallback.onDataReceived(bpm, hour, minute);
+                                    // Update UI
+                                    if (dataCallback != null) {
+                                        dataCallback.onDataReceived(bpm, hour, minute);
+                                    }
+                                } else {
+                                    Log.e(TAG, "Invalid data format after cleaning: " + receivedData);
                                 }
-                            } catch (NumberFormatException e) {
-                                Log.e(TAG, "Invalid data format: " + receivedData);
+                            } catch (Exception e) {
+                                Log.e(TAG, "Error decoding BLE data", e);
                             }
                         }
                     }
