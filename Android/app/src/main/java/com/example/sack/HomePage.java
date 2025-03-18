@@ -10,7 +10,6 @@ import android.widget.TextView;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.github.mikephil.charting.components.Legend;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.components.YAxis;
 import com.github.mikephil.charting.data.Entry;
@@ -19,14 +18,8 @@ import com.github.mikephil.charting.data.LineDataSet;
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.github.mikephil.charting.charts.LineChart;
-
-import java.io.File;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -47,6 +40,7 @@ public class HomePage extends AppCompatActivity {
         String username = sharedPreferences.getString("USERNAME", "default_username"); // Default if not found
         dbHelper = new DatabaseHelper(this);
         userId = dbHelper.getUserIdByUsername(username);
+        dbHelper.printAllTables();
         if (username != null && !username.isEmpty()) {
             welcomeMessage.setText("Welcome " + username);
 
@@ -57,8 +51,6 @@ public class HomePage extends AppCompatActivity {
         } else {
             welcomeMessage.setText("Welcome User");
         }
-        File databasePath = getDatabasePath("Alarm_DB");
-        Log.d("DatabaseDebug", "Database Path: " + databasePath.getAbsolutePath());
     }
 
     // Display heartbeat data on the graph
@@ -75,7 +67,7 @@ public class HomePage extends AppCompatActivity {
                 do {
                     double bpm = cursor.getDouble(bpmIndex);
                     int hour = cursor.getInt(hourIndex);
-                    int minute = cursor.getInt(minuteIndex);
+                //    int minute = cursor.getInt(minuteIndex);
 
                     // Group data by hour
                     hourlyData.putIfAbsent(hour, new ArrayList<>());
@@ -117,28 +109,11 @@ public class HomePage extends AppCompatActivity {
             lineChart.invalidate(); // Refresh chart
         }
     }
-
-
-
-
-    private String generateTimestampFromESP(int hour, int minute) {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
-        Calendar calendar = Calendar.getInstance();
-
-        // Use the current date but replace the hour and minute with the ESP values
-        calendar.set(Calendar.HOUR_OF_DAY, hour);
-        calendar.set(Calendar.MINUTE, minute);
-        calendar.set(Calendar.SECOND, 0); // Set seconds to 0 for consistency
-
-        return sdf.format(calendar.getTime()); // Return formatted timestamp
-    }
     public void updateGraph() {
         runOnUiThread(() -> {
+            Log.d("GraphDebug", "Updating Graph...");
             displayHeartbeatDataOnGraph(userId, dbHelper, lineChart);
         });
-    }
-    public int getUserId() {
-        return userId;
     }
 }
 

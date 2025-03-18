@@ -125,16 +125,17 @@ public class BLEManager {
             if (CHARACTERISTIC_UUID.equals(characteristic.getUuid())) {
                 byte[] rawData = characteristic.getValue();
                 if (rawData != null) {
-                    String receivedData = new String(rawData, StandardCharsets.UTF_8);
+                    String receivedData = new String(rawData, StandardCharsets.UTF_8).trim();
                     Log.d(TAG, "Data received from ESP: " + receivedData);
 
-                    if (receivedData.matches("\\d{2,3}, \\d{1,2}, \\d{1,2}")) {
+                    if (receivedData.matches("\\d{1,3},\\d{1,2},\\d{1,2}")) { // Fix Regex
                         String[] parts = receivedData.split(",");
                         if (parts.length == 3) { // Expected format: "BPM,Hour,Minute"
                             try {
-                                int bpm = (int) Double.parseDouble(parts[0]); // Convert BPM to int
+                                int bpm = Integer.parseInt(parts[0]);
                                 int hour = Integer.parseInt(parts[1]);
                                 int minute = Integer.parseInt(parts[2]);
+
                                 Log.d(TAG, "Parsed Data - BPM: " + bpm + ", Hour: " + hour + ", Minute: " + minute);
 
                                 // Save BPM & timestamp to database
@@ -143,26 +144,35 @@ public class BLEManager {
                                 int userId = dbHelper.getUserIdByUsername(loggedInUsername);
 
                                 if (userId != -1) {
-                                    dbHelper.insertSensorData(userId, bpm, hour, minute);
-                                    Log.d(TAG, "BPM saved to database: " + bpm + " at " + hour + ":" + minute);
+                                    long result = dbHelper.insertSensorData(userId, bpm, hour, minute);
+                                    if (result != -1) {
+                                        Log.d(TAG, "BPM saved to database: " + bpm + " at " + hour + ":" + minute);
+                                    } else {
+                                        Log.e(TAG, "BPM insert failed.");
+                                    }
                                 } else {
-                                    Log.e(TAG, "Failed to get user ID. BPM not saved.");
+                                    Log.e(TAG, "User ID not found. BPM not saved.");
                                 }
 
-                                // Update UI
+                                // Update Graph (if `HomePage` is active)
+                                if (context instanceof HomePage) {
+                                    ((HomePage) context).runOnUiThread(() -> ((HomePage) context).updateGraph());
+                                }
+
+                                // Notify UI
                                 if (dataCallback != null) {
                                     dataCallback.onDataReceived(bpm, hour, minute);
                                 }
                             } catch (Exception e) {
                                 Log.e(TAG, "Error decoding BLE data", e);
                             }
-                        } else {
-                            Log.e(TAG, "Invalid data format after cleaning: " + receivedData);
                         }
+                    } else {
+                        Log.e(TAG, "Invalid data format received: " + receivedData);
                     }
                 }
             }
-        };
+        }
         @Override
         public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
