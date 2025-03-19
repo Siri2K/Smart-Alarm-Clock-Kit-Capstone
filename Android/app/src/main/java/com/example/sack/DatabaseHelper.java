@@ -398,7 +398,7 @@ private static final String CREATE_SLEEP_TABLE =
         // Fetch all alarm times for the user
         Cursor cursor = db.rawQuery("SELECT " + COLUMN_ALARM_TIME +
                         " FROM " + TABLE_ALARMS +
-                        " WHERE " + COLUMN_USER_REF_ID +
+                        " WHERE " + COLUMN_USER_REF_ID + "=?" +
                         " ORDER BY " + COLUMN_ALARM_TIME + " ASC",
                 new String[]{String.valueOf(userId)});
 
@@ -408,15 +408,12 @@ private static final String CREATE_SLEEP_TABLE =
         }
         cursor.close();
 
-        int alarmCount = alarmTimes.size();
-
         // If no alarms exist, send a default response
-        if (alarmCount == 0) {
+        if (alarmTimes.isEmpty()) {
             return "00:00,0"; // No alarms set
         }
 
-        // Convert the list of alarms to a single string (comma-separated)
-        return String.join(",", alarmTimes) + "," + alarmCount;
+        return String.join(",", alarmTimes) + "," + alarmTimes.size();
     }
     // Insert or Update WiFi credentials
     public void saveOrUpdateWiFiSettings(String ssid, String password) {
