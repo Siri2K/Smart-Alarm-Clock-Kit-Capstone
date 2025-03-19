@@ -21,7 +21,7 @@ public class WiFiBleSettingsActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.wifiblesettings); // Ensure this matches your XML file name
-        bleManager = new BLEManager(this);
+        bleManager = BLEManager.getInstance(this);
         dbHelper = new DatabaseHelper(this);
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
         NavigationBar.setupNavigation(this, bottomNavigationView);

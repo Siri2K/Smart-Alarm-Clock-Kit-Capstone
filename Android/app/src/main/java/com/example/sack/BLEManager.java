@@ -239,13 +239,18 @@ public class BLEManager {
         }
     }
     public boolean isConnected() {
-        if (bluetoothGatt == null) {
-            Log.e("BLEManager", "BLE connection check failed: bluetoothGatt is null.");
+        if (bluetoothGatt == null || bluetoothAdapter == null) {
+            Log.e("BLEManager", "BLE connection check failed: bluetoothGatt or bluetoothAdapter is null.");
             return false;
         }
-        int connectionState = bluetoothGatt.getConnectionState(bluetoothGatt.getDevice());
-        Log.d("BLEManager", "BLE connection state: " + connectionState);
-        return connectionState == BluetoothProfile.STATE_CONNECTED;
+        BluetoothManager bluetoothManager = (BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE);
+        if (bluetoothManager != null) {
+            int connectionState = bluetoothManager.getConnectionState(bluetoothGatt.getDevice(), BluetoothProfile.GATT);
+            Log.d("BLEManager", "BLE connection state: " + connectionState);
+            return connectionState == BluetoothProfile.STATE_CONNECTED;
+        }
+
+        return false;
     }
     private void handleSleepCommand(int userId) {
         Calendar calendar = Calendar.getInstance();
@@ -255,9 +260,9 @@ public class BLEManager {
         dbHelper.insertSleepData(userId, sleepHour, sleepMinute);
         Log.d(TAG, "User went to sleep at: " + sleepHour + ":" + sleepMinute);
 
-        if (context instanceof HomePage) {
-            ((HomePage) context).runOnUiThread(() -> ((HomePage) context).updateSleepUI());
-        }
+//        if (context instanceof HomePage) {
+//            ((HomePage) context).runOnUiThread(() -> ((HomePage) context).updateSleepUI());
+//        }
     }
     private void handleWakeCommand(int userId) {
         Calendar calendar = Calendar.getInstance();
@@ -267,8 +272,8 @@ public class BLEManager {
         dbHelper.insertWakeData(userId, wakeHour, wakeMinute);
         Log.d(TAG, "User woke up at: " + wakeHour + ":" + wakeMinute);
 
-        if (context instanceof HomePage) {
-            ((HomePage) context).runOnUiThread(() -> ((HomePage) context).updateSleepUI());
-        }
+//        if (context instanceof HomePage) {
+//            ((HomePage) context).runOnUiThread(() -> ((HomePage) context).updateSleepUI());
+//        }
     }
 }

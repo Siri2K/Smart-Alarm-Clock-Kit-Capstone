@@ -46,7 +46,7 @@ public class AlarmSetPage extends AppCompatActivity {
         NavigationBar.setupNavigation(this, bottomNavigationView);
         // Set current date dynamically
         updateCurrentDate();
-
+        bleManager = BLEManager.getInstance(this);
         // Retrieve the logged-in username from SharedPreferences
         SharedPreferences sharedPreferences = getSharedPreferences("MyPreferences", MODE_PRIVATE);
         String loggedInUsername = sharedPreferences.getString("LOGGED_IN_USERNAME", null);
@@ -113,16 +113,16 @@ public class AlarmSetPage extends AppCompatActivity {
         alarmAdapter.notifyDataSetChanged();
     }
     private void sendAlarmsToESP() {
-            // Ensure BLEManager is initialized
+        // Ensuring BLEManager is initialized
             bleManager = BLEManager.getInstance(this);
 
-            // Check if BLE is connected
-            if (bleManager.isConnected()) {
-                bleManager.sendAlarmDataToESP(databaseHelper, userId);
-                Toast.makeText(this, "Alarms sent successfully!", Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(this, "BLE not connected! Please connect before sending alarms.", Toast.LENGTH_LONG).show();
-            }
+        // Check if BLE is connected
+        if (bleManager.isConnected()){
+            bleManager.sendAlarmDataToESP(databaseHelper, userId);
+            Toast.makeText(this, "Alarms sent successfully!", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(this, "BLE not ready! Try again after connecting.", Toast.LENGTH_LONG).show();
+        }
     }
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {

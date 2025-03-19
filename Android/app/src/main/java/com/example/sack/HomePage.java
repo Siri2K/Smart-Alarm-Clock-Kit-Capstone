@@ -27,8 +27,8 @@ public class HomePage extends AppCompatActivity {
     private int userId;
     private DatabaseHelper dbHelper;
     private LineChart lineChart;
-    private TextView optimalBedtime, TimeAsleep, LastWeek, TimeAsleepRange, LastWeekRange;
-    private boolean useDummyData = true; // Set to false when using actual data
+   // private TextView optimalBedtime, TimeAsleep, LastWeek, TimeAsleepRange, LastWeekRange;
+    private boolean useDummyData = false; // Set to false when using actual data
 
     @SuppressLint("SetTextI18n")
     @Override
@@ -37,11 +37,11 @@ public class HomePage extends AppCompatActivity {
         setContentView(R.layout.homepage);
 
         TextView welcomeMessage = findViewById(R.id.welcomeMessage);
-        optimalBedtime = findViewById(R.id.optimalBedtime);
-        TimeAsleep = findViewById(R.id.TimeAsleep);
-        LastWeek = findViewById(R.id.LastWeek);
-        TimeAsleepRange = findViewById(R.id.TimeAsleepRange);
-        LastWeekRange = findViewById(R.id.LastWeekRange);
+       // optimalBedtime = findViewById(R.id.optimalBedtime);
+        //TimeAsleep = findViewById(R.id.TimeAsleep);
+        //LastWeek = findViewById(R.id.LastWeek);
+        //TimeAsleepRange = findViewById(R.id.TimeAsleepRange);
+        //LastWeekRange = findViewById(R.id.LastWeekRange);
         lineChart = findViewById(R.id.lineChart);
 
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
@@ -59,7 +59,7 @@ public class HomePage extends AppCompatActivity {
 
             if (userId != -1) {
                 displayHeartbeatDataOnGraph(userId);
-                updateSleepUI();
+                //updateSleepUI();
             }
         } else {
             welcomeMessage.setText("Welcome User");
@@ -159,29 +159,29 @@ public class HomePage extends AppCompatActivity {
             displayHeartbeatDataOnGraph(userId);
         });
     }
-    void updateSleepUI() {
-        int sleepDuration = dbHelper.getTimeAsleep(userId);
-        String avgSleepTime = dbHelper.getAvgSleepTime(userId);
-        int avgSleepDuration = dbHelper.getAvgSleepDuration(userId);
-
-        runOnUiThread(() -> {
-            if (sleepDuration > 0) {
-                TimeAsleep.setText(sleepDuration + " hours");
-            } else {
-                TimeAsleep.setText("No Data Yet");
-            }
-
-            if (!avgSleepTime.equals("No Data")) {
-                optimalBedtime.setText("Optimal Bedtime: " + avgSleepTime);
-            } else {
-                optimalBedtime.setText("No Data Yet");
-            }
-
-            if (avgSleepDuration > 0) {
-                LastWeek.setText(avgSleepDuration + " hours");
-            } else {
-                LastWeek.setText("No Data Yet");
-            }
-        });
-    }
+//    void updateSleepUI() {
+//        int sleepDuration = dbHelper.getTimeAsleep(userId);
+//        String avgSleepTime = dbHelper.getAvgSleepTime(userId);
+//        int avgSleepDuration = dbHelper.getAvgSleepDuration(userId);
+//
+//        runOnUiThread(() -> {
+//            if (sleepDuration > 0) {
+//                TimeAsleep.setText(sleepDuration + " hours");
+//            } else {
+//                TimeAsleep.setText("No Data Yet");
+//            }
+//
+//            if (!avgSleepTime.equals("No Data")) {
+//                optimalBedtime.setText("Optimal Bedtime: " + avgSleepTime);
+//            } else {
+//                optimalBedtime.setText("No Data Yet");
+//            }
+//
+//            if (avgSleepDuration > 0) {
+//                LastWeek.setText(avgSleepDuration + " hours");
+//            } else {
+//                LastWeek.setText("No Data Yet");
+//            }
+//        });
+//    }
 }

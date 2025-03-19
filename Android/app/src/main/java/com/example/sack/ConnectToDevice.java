@@ -45,7 +45,7 @@ public class ConnectToDevice extends AppCompatActivity {
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
         NavigationBar.setupNavigation(this, bottomNavigationView);
 
-        bleManager = new BLEManager(this);
+        bleManager = BLEManager.getInstance(this);
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
         // Restore the saved status message
