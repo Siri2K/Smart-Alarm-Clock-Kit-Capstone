@@ -28,7 +28,7 @@ public class HomePage extends AppCompatActivity {
     private DatabaseHelper dbHelper;
     private LineChart lineChart;
    // private TextView optimalBedtime, TimeAsleep, LastWeek, TimeAsleepRange, LastWeekRange;
-    private boolean useDummyData = false; // Set to false when using actual data
+    private boolean useDummyData = true; // Set to false when using actual data
 
     @SuppressLint("SetTextI18n")
     @Override

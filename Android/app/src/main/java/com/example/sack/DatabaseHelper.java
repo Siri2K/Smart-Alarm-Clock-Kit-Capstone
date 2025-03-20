@@ -1,8 +1,11 @@
 package com.example.sack;
 
+import static android.content.Context.MODE_PRIVATE;
+
 import android.annotation.SuppressLint;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
@@ -255,16 +258,17 @@ private static final String CREATE_SLEEP_TABLE =
 
 
     // Get All Alarms
-    public ArrayList<AlarmModel> getAllAlarms() {
+    public ArrayList<AlarmModel> getAllAlarms(int userId) {
         ArrayList<AlarmModel> alarmList = new ArrayList<>();
         SQLiteDatabase db = this.getReadableDatabase();
 
-        Cursor cursor = db.rawQuery("SELECT * FROM " + TABLE_ALARMS, null);
+        Cursor cursor = db.rawQuery("SELECT * FROM " + TABLE_ALARMS + " WHERE " + COLUMN_USER_REF_ID + "=?",
+                new String[]{String.valueOf(userId)});
 
         if (cursor.moveToFirst()) {
             do {
                 @SuppressLint("Range") int id = cursor.getInt(cursor.getColumnIndex(COLUMN_ALARM_ID));
-                @SuppressLint("Range") int userId = cursor.getInt(cursor.getColumnIndex(COLUMN_USER_REF_ID));
+                //x@SuppressLint("Range") int userId = cursor.getInt(cursor.getColumnIndex(COLUMN_USER_REF_ID));
                 @SuppressLint("Range") String time = cursor.getString(cursor.getColumnIndex(COLUMN_ALARM_TIME));
                 @SuppressLint("Range") String label = cursor.getString(cursor.getColumnIndex(COLUMN_ALARM_LABEL));
                 @SuppressLint("Range") boolean isEnabled = cursor.getInt(cursor.getColumnIndex(COLUMN_ALARM_STATUS)) == 1;
@@ -353,6 +357,7 @@ private static final String CREATE_SLEEP_TABLE =
         Cursor cursor = db.rawQuery("SELECT user_id FROM user_data WHERE username=?", new String[]{username});
         if (cursor.moveToFirst()) {
             userId = cursor.getInt(0); // Get the user ID
+            Log.d("DEBUG", "Found user ID: " + userId);
         }
         cursor.close();
         return userId;

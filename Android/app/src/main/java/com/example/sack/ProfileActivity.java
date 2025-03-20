@@ -35,7 +35,7 @@ public class ProfileActivity extends AppCompatActivity {
 
         // Retrieve logged-in user
         SharedPreferences sharedPreferences = getSharedPreferences("MyPreferences", MODE_PRIVATE);
-        String username = sharedPreferences.getString("USERNAME", "default_username"); // Default if not found
+        String username = sharedPreferences.getString("LOGGED_IN_USERNAME", "default_username"); // Default if not found
         if (username == null || username.isEmpty()) {
             Toast.makeText(this, "Username is missing", Toast.LENGTH_SHORT).show();
             return;

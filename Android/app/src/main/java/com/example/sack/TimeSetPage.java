@@ -2,9 +2,11 @@ package com.example.sack;
 
 import android.annotation.SuppressLint;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
@@ -158,6 +160,16 @@ public class TimeSetPage extends AppCompatActivity {
         String alarmSound = selectedSound;
         String alarmLabel = "Alarm"; // You can modify this if needed
 
+        //Fetch username
+        SharedPreferences sharedPreferences = getSharedPreferences("MyPreferences", MODE_PRIVATE);
+        String loggedInUsername = sharedPreferences.getString("LOGGED_IN_USERNAME", null);
+
+        if (loggedInUsername != null) {
+            userId = databaseHelper.getUserIdByUsername(loggedInUsername);
+            Log.d("DEBUG", "Creating alarm for user ID: " + userId);
+        } else {
+            Log.e("DEBUG", "No logged-in user found!");
+        }
         //Pass parameters in the correct order
         long result = databaseHelper.insertAlarm(userId, time, alarmLabel, repeatDays, alarmSound, vibrateEnabled);
 

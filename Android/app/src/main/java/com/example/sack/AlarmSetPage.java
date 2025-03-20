@@ -3,6 +3,7 @@ package com.example.sack;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -47,17 +48,18 @@ public class AlarmSetPage extends AppCompatActivity {
         // Set current date dynamically
         updateCurrentDate();
         bleManager = BLEManager.getInstance(this);
+        databaseHelper = new DatabaseHelper(this);
         // Retrieve the logged-in username from SharedPreferences
         SharedPreferences sharedPreferences = getSharedPreferences("MyPreferences", MODE_PRIVATE);
         String loggedInUsername = sharedPreferences.getString("LOGGED_IN_USERNAME", null);
-
+        Log.d("DEBUG", "Retrieved username from SharedPreferences: " + loggedInUsername);
         // Initialize database and load alarms
-        databaseHelper = new DatabaseHelper(this);
 
 
         // Fetch userId based on stored username
         if (loggedInUsername != null) {
             userId = databaseHelper.getUserIdByUsername(loggedInUsername);
+            Log.d("DEBUG", "Retrieved user ID from database: " + userId);
         } else {
             userId = -1; // Default if username is not found
         }
@@ -92,7 +94,16 @@ public class AlarmSetPage extends AppCompatActivity {
 
     private void loadAlarms() {
         alarmList.clear();  // Clear old alarms
-        alarmList.addAll(databaseHelper.getAllAlarms());  // Fetch latest alarms
+        // Get user ID from SharedPreferences
+        SharedPreferences sharedPreferences = getSharedPreferences("MyPreferences", MODE_PRIVATE);
+        String loggedInUsername = sharedPreferences.getString("LOGGED_IN_USERNAME", null);
+        if (loggedInUsername != null) {
+            userId = databaseHelper.getUserIdByUsername(loggedInUsername);
+            Log.d("DEBUG", "Loading alarms for user ID: " + userId);
+            alarmList.addAll(databaseHelper.getAllAlarms(userId));
+        } else {
+            Log.e("DEBUG", "No logged-in user found!");
+        }
 
         // Check if alarm list is empty
         if (alarmList.isEmpty()) {
@@ -115,7 +126,8 @@ public class AlarmSetPage extends AppCompatActivity {
     private void sendAlarmsToESP() {
         // Ensuring BLEManager is initialized
             bleManager = BLEManager.getInstance(this);
-
+        // Debugging: Print the user ID before querying
+        Log.d("DEBUG", "Sending alarms to ESP for user ID: " + userId);
         // Check if BLE is connected
         if (bleManager.isConnected()){
             bleManager.sendAlarmDataToESP(databaseHelper, userId);
