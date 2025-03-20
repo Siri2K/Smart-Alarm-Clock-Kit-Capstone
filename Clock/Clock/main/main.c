@@ -1,7 +1,7 @@
 /* Components Headers */
 #include "Button.h"
 #include "Buzzer.h"
-#include "LCD.h"
+// #include "LCD.h"
 #include "InternalRealTimeClock.h"
 // #include "RealTimeClock.h"
 #include "SlideSwitch.h"
@@ -50,7 +50,7 @@ typedef struct parts_t{
     slide_switch_t slide_switch;
     button_t button;
     buzzer_t buzzer;
-    lcd_t lcd;
+    // lcd_t lcd;
     internal_real_time_clock_t rtc;
     
 
@@ -126,7 +126,7 @@ static const char *TAG = "Clock Log:";
 /* Function Prototypes */
 // Control Task
 
-void ControlTask(void *pvParameters);
+void ControlTask();
 
 // Computation Tasks
 void initializeAllHWTask(void *pvParameters);
@@ -196,14 +196,14 @@ void ControlTask(){
 
     /* Create All Tasks */
     // Initalize All HW
-    xTaskCreatePinnedToCore(initializeAllHWTask,"HardWare Initialization", sizeof(parts_t),part, configMAX_PRIORITIES -1, &initializeAllHWHandle,1);
+    xTaskCreate(initializeAllHWTask,"HardWare Initialization", sizeof(parts_t),(void*)&parts, configMAX_PRIORITIES -1, &initializeAllHWHandle);
     // Create All Functionality tasks
     // xTaskCreatePinnedToCore(setupBLE,"Setup BLE", sizeof(parts_t),part, tskIDLE_PRIORITY + 4,&setupBLEHandle,0);
-    xTaskCreatePinnedToCore(checkControlMode,"Check Clock Mode", sizeof(parts_t),part, tskIDLE_PRIORITY + 3,&checkControlModeHandle,1);
-    xTaskCreatePinnedToCore(readClockTime,"Read Current Time", sizeof(parts_t),part, tskIDLE_PRIORITY,&readClockTimeHandle,1);
-    xTaskCreatePinnedToCore(changeCurrentTime,"Change Curent Time", sizeof(parts_t),part, tskIDLE_PRIORITY + 1,&changeCurrentTimeHandle,1);
-    xTaskCreatePinnedToCore(changeAlarmTime,"Change Alarm Time", sizeof(parts_t),part, tskIDLE_PRIORITY + 1,&changeAlarmTimeHandle,1);
-    xTaskCreatePinnedToCore(bulbthread,"Bulb Thread",sizeof(parts_t),part, tskIDLE_PRIORITY + 1,&setbulbhandle,1);
+    xTaskCreate(checkControlMode,"Check Clock Mode", sizeof(parts_t),(void*)&parts, tskIDLE_PRIORITY + 3,&checkControlModeHandle);
+    xTaskCreate(readClockTime,"Read Current Time", sizeof(parts_t),(void*)&parts, tskIDLE_PRIORITY,&readClockTimeHandle);
+    xTaskCreate(changeCurrentTime,"Change Curent Time", sizeof(parts_t),(void*)&parts, tskIDLE_PRIORITY + 1,&changeCurrentTimeHandle);
+    xTaskCreate(changeAlarmTime,"Change Alarm Time", sizeof(parts_t),(void*)&parts, tskIDLE_PRIORITY + 1,&changeAlarmTimeHandle);
+    xTaskCreate(bulbthread,"Bulb Thread",sizeof(parts_t),(void*)&parts, tskIDLE_PRIORITY + 1,&setbulbhandle);
 
     // Start Schedule
     vTaskStartScheduler();
@@ -218,7 +218,7 @@ void initializeAllHWTask(void *pvParameters){
     initializeButton(&partPtr->button);
     initializeBuzzer(&partPtr->buzzer);
     initializeRTC(&partPtr->rtc);
-    initializeLCD(&partPtr->lcd);
+    //initializeLCD(&partPtr->lcd);
 
     // Intialize Current and Alarm Time
     ESP_LOGI(TAG,"Set Default Time to RTC");
@@ -308,7 +308,7 @@ void changeCurrentTime(void *pvParameters){
         
         parts_t *part = (parts_t*)pvParameters;
         button_t button = part->button;
-        lcd_t lcd = part->lcd;
+        // lcd_t lcd = part->lcd;
         uint8_t timeIndex = 0;
         char time_str[10];
 
@@ -345,10 +345,12 @@ void changeCurrentTime(void *pvParameters){
         );
 
         // Display Time to LCD
+        /*
         ESP_LOGI(TAG,"Display Time on LCD");
         snprintf(time_str, sizeof(time_str), "%02d:%02d", part->currentTime[0], part->currentTime[1]);
         lcd.display((void*)(&lcd),lcdCharacters,0,10,time_str);
         lcd.display((void*)(&lcd),lcdCharacters,0,20,((part->currentTime[3] == 0)? "am" : "pm"));
+        */
         
 
         xEventGroupClearBits(eventGroup,EVT_TIME_MODE);
@@ -382,7 +384,7 @@ void changeAlarmTime(void *pvParameters){
         
         parts_t *part = (parts_t*)pvParameters;
         button_t button = part->button;
-        lcd_t lcd = part->lcd;
+        // lcd_t lcd = part->lcd;
         uint8_t timeIndex = 0;
         char time_str[10];
         
@@ -411,12 +413,12 @@ void changeAlarmTime(void *pvParameters){
         }
 
         // Display Time to LCD
-        
+        /*
         ESP_LOGI(TAG,"Display Time on LCD");
         snprintf(time_str, sizeof(time_str), "%02d:%02d", part->alarmTime[0], part->alarmTime[1]);
         lcd.display((void*)(&lcd),lcdCharacters,1,10,time_str);
         lcd.display((void*)(&lcd),lcdCharacters,1,20,((part->alarmTime[3] == 0)? "am" : "pm"));
-        
+        */
 
         // Reset index
         if(timeIndex >=3){
@@ -438,7 +440,7 @@ void readClockTime(void *pvParameters){
 
    // Isolated Needed HW
    internal_real_time_clock_t rtc = part->rtc;
-   lcd_t lcd = part->lcd;
+   // lcd_t lcd = part->lcd;
    buzzer_t buzzer = part->buzzer;
    char time_str[10];
 
@@ -462,11 +464,13 @@ void readClockTime(void *pvParameters){
     );
 
     // Display Time on LCD
+    /*
     ESP_LOGI(TAG,"Display Time on LCD");
     snprintf(time_str, sizeof(time_str), "%02d:%02d", part->currentTime[0], part->currentTime[1]);
     lcd.display((void*)(&lcd),lcdCharacters,0,10,time_str);
     lcd.display((void*)(&lcd),lcdCharacters,0,20,((part->currentTime[3] == 0)? "am" : "pm"));
     xEventGroupSetBits(eventGroup,READ_TIME_BIT);
+    */
 
     // Setup Alarm
     uint8_t triggerAlarm = (part->currentTime[0] == part->alarmTime[0]) & (part->currentTime[3] == part->alarmTime[3]); // Check for Hour and AM & PM
