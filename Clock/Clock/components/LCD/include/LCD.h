@@ -32,6 +32,27 @@
 
 
 // SPI variables
+// Commands
+#define LCD_DISPLAY_OFF                 0xAE
+#define LCD_ADC_NORMAL                  0xA0
+#define LCD_COMMON_OUTPUT_MODE          0xC0
+#define LCD_NORMAL_DISPLAY_MODE         0xA4
+#define LCD_DISPLAY_NORMAL_MODE         0xA6
+#define LCD_BIAS_RATIO                  0xA2
+#define LCD_POWER_CONTROL               0x2F
+#define LCD_CONTRAST                    0x27
+#define LCD_SET_CONTRAST                0x81
+#define LCD_CONTRAST_LEVEL              0x10
+#define LCD_TEMPERATURE_COMPENSATION    0xFA
+#define LCD_TEMPERATURE_COEFFICIENT     0x90
+#define LCD_DISPLAY_ON                  0xAF
+
+#define LCD_PAGE_0                      0xB0 
+#define LCD_COLUMN_MSB                  0x10 
+#define LCD_COLUMN_LSB                  0x00  
+
+
+// SPI variables
 #define SPI_MODE 0x03 // SPI (CPOL=1, CPHA=1)
 #define LCD_CLOCK_SPEED 1000000 // 1MHz
 
@@ -63,6 +84,7 @@ typedef struct lcd_t{
 }lcd_t;
 
 
+
 // Functions
 extern void initializeLCD(lcd_t *lcd);
 
@@ -74,6 +96,11 @@ extern esp_err_t configureLCDBus(lcd_t *lcd);
 
 extern esp_err_t configureLCDDeviceInterface(lcd_t *lcd);
 
+extern void *sendToLCD(void *lcdPtr, lcd_mode mode, uint8_t value);
+
+extern void *setCursorToLCD(void *lcdPtr, uint8_t page, uint8_t column);
+
+extern void *displayToLCD(void *lcdPtr, const uint8_t *font, uint8_t page, uint8_t start_col, const char *text);
 extern void *sendToLCD(void *lcdPtr, lcd_mode mode, uint8_t value);
 
 extern void *setCursorToLCD(void *lcdPtr, uint8_t page, uint8_t column);

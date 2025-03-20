@@ -1,6 +1,10 @@
 #include "RealTimeClock.h"
+#include <string.h>  // For memset
 
 void initializeRTC(real_time_clock_t *rtc){
+    
+    memset(&rtc->rtcConfig, 0, sizeof(rtc->rtcConfig));
+    
     // Configure RTC
     rtc->rtcConfig.mode = I2C_MODE_MASTER;
     rtc->rtcConfig.sda_io_num  = RTC_SDA;
@@ -8,6 +12,7 @@ void initializeRTC(real_time_clock_t *rtc){
     rtc->rtcConfig.sda_pullup_en  = GPIO_PULLUP_DISABLE;
     rtc->rtcConfig.scl_pullup_en  = GPIO_PULLUP_DISABLE;
     rtc->rtcConfig.master.clk_speed = RTC_CLK_FREQ;
+    rtc->rtcConfig.clk_flags = 0;
 
     i2c_param_config(I2C_NUM_0, &rtc->rtcConfig);
     i2c_driver_install(I2C_NUM_0,I2C_MODE_MASTER,0,0,0);

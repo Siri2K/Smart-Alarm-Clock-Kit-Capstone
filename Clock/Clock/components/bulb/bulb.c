@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include "bulb.h"
 
-static char* sku = "H6008"; //sku of device
-static char* device = "DA:40:D0:C9:07:DD:1F:C2"; //device identifier (mac address)
-static char* key ="01dd14bd-df8c-465c-894a-aeddc7fe3f5f"; //api key required to send request
+char* sku = "H6008"; //sku of device
+char* device = "DA:40:D0:C9:07:DD:1F:C2"; //device identifier (mac address)
+char* key ="01dd14bd-df8c-465c-894a-aeddc7fe3f5f"; //api key required to send request
 
 //might need to rewrite all code here
 

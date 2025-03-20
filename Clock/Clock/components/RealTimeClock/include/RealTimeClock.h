@@ -21,7 +21,7 @@
 #define RTC_REGISTER_MINUTES 0x02    
 #define RTC_REGISTER_HOURS 0x03
 
-typedef struct real_time_clock_t{
+typedef struct {
     // I2C Configuration
     i2c_config_t rtcConfig;
 
