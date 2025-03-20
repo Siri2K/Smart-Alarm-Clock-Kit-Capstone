@@ -4,6 +4,9 @@
 /* Headers */ 
 #include <driver/gpio.h>
 
+/* Debug Logs */
+#include "esp_log.h"
+
 /* C Library */
 #include <stdio.h>
 
@@ -22,19 +25,14 @@ typedef enum {
 } clock_mode_t;
 
 typedef struct slide_switch_t {
-    // Data
-    gpio_config_t sliderConfig;
-    
     // Task
-    clock_mode_t *(*mode)();
+    clock_mode_t (*mode)();
     
 } slide_switch_t;
 
 /* Tasks */
 extern void initializeSlideSwitch(slide_switch_t *slideSwitch);
 
-extern esp_err_t configureSlideSwitch(slide_switch_t *slideSwitch);
-
-extern clock_mode_t *readMode();
+extern clock_mode_t readMode();
 
 #endif

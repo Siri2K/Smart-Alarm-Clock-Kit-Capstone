@@ -10,7 +10,7 @@
     "files.associations": {
         "*.asm": "mips",
         "bulb.h": "c",
-        "rtc.h": "c",
+        "internalrealtimeclock.h": "c",
         "lcd.h": "c",
         "event_groups.h": "c",
         "realtimeclock.h": "c",
@@ -24,7 +24,12 @@
         "string.h": "c",
         "i2c.h": "c",
         "i2c_types.h": "c",
-        "stdio.h": "c"
+        "stdio.h": "c",
+        "buzzer.h": "c",
+        "button.h": "c",
+        "task.h": "c",
+        "freertosconfig.h": "c",
+        "freertos.h": "c"
     },
     "idf.flashType": "UART",
     "idf.portWin": "COM8",

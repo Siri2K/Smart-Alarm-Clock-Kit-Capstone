@@ -5,6 +5,9 @@
 #include <driver/gpio.h>
 #include <esp_timer.h>
 
+/* Debug Logs */
+#include "esp_log.h"
+
 /* C Library */
 #include <stdio.h>
 
@@ -12,32 +15,26 @@
 #define BUTTON_COUNT 3
 
 // Pins
-#define UP_BUTTON GPIO_NUM_4
-#define DOWN_BUTTON GPIO_NUM_5
-#define SELECT_BUTTON GPIO_NUM_6
+#define UP_BUTTON GPIO_NUM_36
+#define DOWN_BUTTON GPIO_NUM_39
+#define SELECT_BUTTON GPIO_NUM_34
 
-/* Globals */
+    /* Globals */
 extern int64_t buttonPressedStartTime;
 
 /* Global Struct or Enums*/
-typedef struct button_t {
-    // Data
-    gpio_num_t gpioPin;
-    gpio_config_t buttonConfig;
-    
+typedef struct button_t { 
     // Functions
-    uint8_t *(*pressed)(gpio_num_t);
-    int64_t  *(*pressDuration)(gpio_num_t);
+    int8_t (*pressed)(gpio_num_t);
+    int64_t  (*pressDuration)(gpio_num_t);
     
 } button_t;
 
 
-extern void initializeButton(button_t *button, gpio_num_t buttonPin);
+extern void initializeButton(button_t *button);
 
-extern esp_err_t configureButton(button_t *button, gpio_num_t buttonPin);
+extern int8_t getPressState(gpio_num_t buttonPin);
 
-extern uint8_t *getPressState(gpio_num_t buttonPin);
-
-extern int64_t *calculatePressDuration(gpio_num_t buttonPin);
+extern int64_t calculatePressDuration(gpio_num_t buttonPin);
 
 #endif

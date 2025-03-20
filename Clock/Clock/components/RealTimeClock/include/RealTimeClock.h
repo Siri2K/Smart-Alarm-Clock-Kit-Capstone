@@ -34,8 +34,6 @@ extern void initializeRTC(real_time_clock_t *rtc);
 
 extern void *writeToRTC(uint8_t* timeArray, uint8_t length);
 
-extern void *writeToRTC(uint8_t* timeArray, uint8_t length);
-
 extern void *writeTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t pm);
 
 extern void *readTime(uint8_t *hour, uint8_t *minute, uint8_t *second, uint8_t *pm);
