@@ -69,11 +69,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     //Sleep time Columns
     private static final String COLUMN_SLEEP_ID = "sleep_id";
-    private static final String COLUMN_SLEEP_HOUR = "sleep_hour";
-    private static final String COLUMN_SLEEP_MINUTE = "sleep_minute";
-    private static final String COLUMN_WAKE_HOUR = "wake_hour";
-    private static final String COLUMN_WAKE_MINUTE = "wake_minute";
-    private static final String COLUMN_DATE = "date";
+    private static final String COLUMN_SLEEP_HOUR = "bedtime";
+
 
     // Users Table Creation
     private static final String CREATE_USERS_TABLE =
@@ -127,17 +124,13 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                     COLUMN_SKU + " TEXT NOT NULL, " +
                     COLUMN_API_KEY + " TEXT NOT NULL);";
 
-//Sleep time Table Creation
-private static final String CREATE_SLEEP_TABLE =
-        "CREATE TABLE " + TABLE_SLEEP + " (" +
-                COLUMN_SLEEP_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                COLUMN_USER_REF_ID + " INTEGER NOT NULL, " +
-                COLUMN_DATE + " TEXT NOT NULL, " +
-                COLUMN_SLEEP_HOUR + " INTEGER, " +
-                COLUMN_SLEEP_MINUTE + " INTEGER, " +
-                COLUMN_WAKE_HOUR + " INTEGER, " +
-                COLUMN_WAKE_MINUTE + " INTEGER, " +
-                "FOREIGN KEY (" + COLUMN_USER_REF_ID + ") REFERENCES " + TABLE_USERS + "(" + COLUMN_USER_ID + "));";
+    //Sleep time Table Creation
+    private static final String CREATE_SLEEP_TABLE =
+            "CREATE TABLE " + TABLE_SLEEP + " (" +
+                    COLUMN_SLEEP_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    COLUMN_USER_REF_ID + " INTEGER NOT NULL, " +
+                    COLUMN_SLEEP_HOUR + " Text, " +
+                    "FOREIGN KEY (" + COLUMN_USER_REF_ID + ") REFERENCES " + TABLE_USERS + "(" + COLUMN_USER_ID + "));";
 
 
     public DatabaseHelper(Context context) {
@@ -146,11 +139,12 @@ private static final String CREATE_SLEEP_TABLE =
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-            db.execSQL(CREATE_USERS_TABLE);
-            db.execSQL(CREATE_HEARTBEAT_TABLE);
-            db.execSQL(CREATE_ALARM_TABLE);
-            db.execSQL(CREATE_WIFI_TABLE);
-            db.execSQL(CREATE_BULB_TABLE);
+        db.execSQL(CREATE_USERS_TABLE);
+        db.execSQL(CREATE_HEARTBEAT_TABLE);
+        db.execSQL(CREATE_ALARM_TABLE);
+        db.execSQL(CREATE_WIFI_TABLE);
+        db.execSQL(CREATE_BULB_TABLE);
+        db.execSQL(CREATE_SLEEP_TABLE);
     }
 
     @Override
@@ -508,28 +502,49 @@ private static final String CREATE_SLEEP_TABLE =
         cursor.close();
     }
 
-    public void insertSleepData(int userId, int sleepHour, int sleepMinute) {
+    public void insertSleepTime(int userId, String bedtime) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
-        values.put(COLUMN_USER_REF_ID, userId);
-        values.put(COLUMN_DATE, getCurrentDate());  // Store today's date
-        values.put(COLUMN_SLEEP_HOUR, sleepHour);
-        values.put(COLUMN_SLEEP_MINUTE, sleepMinute);
+        values.put(COLUMN_USER_REF_ID, userId); // Ensure userId is stored
+        values.put(COLUMN_SLEEP_HOUR, bedtime);
         db.insert(TABLE_SLEEP, null, values);
+        db.close();
     }
-    public void insertWakeData(int userId, int wakeHour, int wakeMinute) {
-        SQLiteDatabase db = this.getWritableDatabase();
-        ContentValues values = new ContentValues();
-        values.put(COLUMN_WAKE_HOUR, wakeHour);
-        values.put(COLUMN_WAKE_MINUTE, wakeMinute);
+    public String getAverageBedtime(int userId) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT " + COLUMN_SLEEP_HOUR +
+                        " FROM " + TABLE_SLEEP + " WHERE " + COLUMN_USER_REF_ID + "=?",
+                new String[]{String.valueOf(userId)});
 
-        db.update(TABLE_SLEEP, values, COLUMN_USER_REF_ID + "=? AND " + COLUMN_DATE + "=?",
-                new String[]{String.valueOf(userId), getCurrentDate()});
+        if (cursor.getCount() == 0) {
+            cursor.close();
+            return "No data available";
+        }
+
+        long totalMinutes = 0;
+        int count = 0;
+        while (cursor.moveToNext()) {
+            String bedtimeStr = cursor.getString(0);
+            long bedtimeMillis = convertTimeToMillis(bedtimeStr);
+            totalMinutes += (bedtimeMillis / (1000 * 60));
+            count++;
+        }
+        cursor.close();
+
+        long averageMillis = (totalMinutes / count) * 60 * 1000;
+        return new SimpleDateFormat("hh:mm a", Locale.getDefault()).format(new Date(averageMillis));
     }
-    public String getCurrentDate() {
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-        return dateFormat.format(new Date());
+    private long convertTimeToMillis(String timeStr) {
+        try {
+            SimpleDateFormat format = new SimpleDateFormat("hh:mm a", Locale.getDefault());
+            Date date = format.parse(timeStr);
+            return date != null ? date.getTime() : 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return 0;
+        }
     }
+
     public void insertHeartbeatData(int userId, double sensorData, int hour, int minute) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
@@ -551,3 +566,4 @@ private static final String CREATE_SLEEP_TABLE =
     }
 
 }
+

@@ -1,5 +1,6 @@
 package com.example.sack;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
@@ -114,10 +115,10 @@ public class SignUpPage extends AppCompatActivity {
     private void setupConditionSpinner() {
         // Condition array with placeholder
         ArrayList<String> conditions = new ArrayList<>();
-        conditions.add("Select Condition");
-        conditions.add("Condition 1");
-        conditions.add("Condition 2");
-        conditions.add("Condition 3");
+        conditions.add("Any Medical Conditions");
+        conditions.add("Yes, I have Heart Medical Condition");
+        conditions.add("Yes, I have A Sleep Disorder Condition");
+        conditions.add("No, I Have No Medical Conditions");
 
         // Create ArrayAdapter
         ArrayAdapter<String> conditionAdapter = new ArrayAdapter<>(this, R.layout.spinner_item, conditions);
@@ -129,6 +130,12 @@ public class SignUpPage extends AppCompatActivity {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 applySpinnerItemStyle(view);
+                // Check if the user selected a medical condition
+                String selectedCondition = conditions.get(position);
+                if (selectedCondition.equals("Yes, I have Heart Medical Condition") ||
+                        selectedCondition.equals("Yes, I have A Sleep Disorder Condition")) {
+                    showWarningDialog();
+                }
             }
 
             @Override
@@ -138,11 +145,23 @@ public class SignUpPage extends AppCompatActivity {
         });
     }
 
+
     private void applySpinnerItemStyle(View view) {
         if (view instanceof TextView) {
             TextView textView = (TextView) view;
             textView.setTextColor(Color.WHITE); // Set text color to white
             textView.setBackgroundColor(Color.parseColor("#1E1E2E")); // Set background color
         }
+    }
+    private void showWarningDialog() {
+        runOnUiThread(() -> { // Ensure it runs on the main UI thread
+            new AlertDialog.Builder(this)
+                    .setTitle("Important Notice")
+                    .setMessage("Our product may not be able to wake you up on time and might lose some results accuracy.\n\nThank you for your understanding.\n\nIf you still wish to use our application, please click Yes.")
+                    .setPositiveButton("Yes", (dialog, which) -> dialog.dismiss())  // Dismiss the dialog if user chooses Yes
+                    .setNegativeButton("No", (dialog, which) -> finishAffinity())  // Close the app if user chooses No
+                    .setCancelable(false)  // Prevent dismissal by clicking outside
+                    .show();
+        });
     }
 }

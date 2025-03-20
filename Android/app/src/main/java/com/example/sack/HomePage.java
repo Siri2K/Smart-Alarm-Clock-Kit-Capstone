@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Color;
+import android.icu.text.SimpleDateFormat;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.TextView;
@@ -17,8 +18,11 @@ import com.github.mikephil.charting.data.LineDataSet;
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.github.mikephil.charting.charts.LineChart;
+
+import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.Random;
@@ -26,8 +30,9 @@ import java.util.Random;
 public class HomePage extends AppCompatActivity {
     private int userId;
     private DatabaseHelper dbHelper;
+    private TextView optimalBedTime;
     private LineChart lineChart;
-    private boolean useDummyData = false; // Set to false when using actual data
+    private boolean useDummyData = true; // Set to false when using actual data
 
     @SuppressLint("SetTextI18n")
     @Override
@@ -37,7 +42,7 @@ public class HomePage extends AppCompatActivity {
 
         TextView welcomeMessage = findViewById(R.id.welcomeMessage);
         lineChart = findViewById(R.id.lineChart);
-
+        optimalBedTime = findViewById(R.id.optimalBedtime);
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
         NavigationBar.setupNavigation(this, bottomNavigationView);
 
@@ -160,4 +165,40 @@ public class HomePage extends AppCompatActivity {
             displayHeartbeatDataOnGraph(userId);
         });
     }
+    private void saveAndSendBedtime() {
+        if (userId == -1) {
+            Log.e("Bedtime", "User ID not found! Cannot save bedtime.");
+            return;
+        }
+
+        // Get the current time and add 10 minutes
+        long currentTimeMillis = System.currentTimeMillis();
+        long optimalTimeMillis = currentTimeMillis + (10 * 60 * 1000); // Add 10 minutes
+
+        // Format the bedtime as HH:mm
+        SimpleDateFormat timeFormat = new SimpleDateFormat("hh:mm a", Locale.getDefault());
+        String optimalBedtime = timeFormat.format(new Date(optimalTimeMillis));
+
+        // Save bedtime in the database
+        dbHelper.insertSleepTime(userId, optimalBedtime);
+
+        // Retrieve the updated average bedtime
+        String averageBedtime = dbHelper.getAverageBedtime(userId);
+
+        SharedPreferences prefs = getSharedPreferences("MyPreferences", MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putString("AVERAGE_BEDTIME", averageBedtime);
+        editor.apply();
+
+        // Debugging log
+        Log.d("Bedtime", "Optimal bedtime saved: " + optimalBedtime);
+    }
+    private void updateSleepUI() {
+        SharedPreferences prefs = getSharedPreferences("MyPreferences", MODE_PRIVATE);
+        String averageBedtime = prefs.getString("AVERAGE_BEDTIME", "No bedtime recorded");
+
+        optimalBedTime.setText(averageBedtime);
+        Log.d("HomePage", "Displaying bedtime: " + averageBedtime);
+    }
+
 }

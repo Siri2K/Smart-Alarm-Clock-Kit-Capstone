@@ -143,16 +143,7 @@ public class BLEManager {
                     String receivedData = new String(rawData, StandardCharsets.UTF_8).trim();
                     Log.d(TAG, "Data received from ESP: " + receivedData);
 
-                    // Handle SLEEP signal
-                    if (receivedData.equals("SLEEP")) {
-                        handleSleepCommand(userId);
-                    }
-                    // Handle WAKE signal
-                    else if (receivedData.equals("WAKE")) {
-                        handleWakeCommand(userId);
-                    }
-
-                    else if (receivedData.matches("\\d{1,3},\\d{1,2},\\d{1,2}")) { // Fix Regex
+                    if (receivedData.matches("\\d{1,3},\\d{1,2},\\d{1,2}")) { // Fix Regex
                         String[] parts = receivedData.split(",");
                         if (parts.length == 3) { // Expected format: "BPM,Hour,Minute"
                             try {
@@ -258,29 +249,5 @@ public class BLEManager {
         }
 
         return false;
-    }
-    private void handleSleepCommand(int userId) {
-        Calendar calendar = Calendar.getInstance();
-        int sleepHour = calendar.get(Calendar.HOUR_OF_DAY);
-        int sleepMinute = calendar.get(Calendar.MINUTE);
-
-        dbHelper.insertSleepData(userId, sleepHour, sleepMinute);
-        Log.d(TAG, "User went to sleep at: " + sleepHour + ":" + sleepMinute);
-
-//        if (context instanceof HomePage) {
-//            ((HomePage) context).runOnUiThread(() -> ((HomePage) context).updateSleepUI());
-//        }
-    }
-    private void handleWakeCommand(int userId) {
-        Calendar calendar = Calendar.getInstance();
-        int wakeHour = calendar.get(Calendar.HOUR_OF_DAY);
-        int wakeMinute = calendar.get(Calendar.MINUTE);
-
-        dbHelper.insertWakeData(userId, wakeHour, wakeMinute);
-        Log.d(TAG, "User woke up at: " + wakeHour + ":" + wakeMinute);
-
-//        if (context instanceof HomePage) {
-//            ((HomePage) context).runOnUiThread(() -> ((HomePage) context).updateSleepUI());
-//        }
     }
 }
