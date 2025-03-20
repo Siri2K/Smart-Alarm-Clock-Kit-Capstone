@@ -172,8 +172,8 @@ void app_main(void){
     // 4) Initialize BLE
     initializeBLE();
     
-    parts.ssid= WifiSSID; //code won't work currently if this isn't set
-    parts.pass=WifiPassword; //code won't work currently if this isn't set
+    parts.ssid= Pixel_GB; //code won't work currently if this isn't set
+    parts.pass= ESP324l1fe; //code won't work currently if this isn't set
     parts.sku=WifiSku;
     parts.bulbmode=0;
     parts.device=WifiMacAddress;
@@ -182,8 +182,12 @@ void app_main(void){
     wifi_init();
     wifi_configuration(parts.ssid,parts.pass);
     wifi_start();
+    vTaskDelay(10000)
+    sendRequest(0);
+    vTaskDelay(10000)
+    sendRequest(1);
 
-    ControlTask();
+    //ControlTask();
 }
 
 void ControlTask(){   
