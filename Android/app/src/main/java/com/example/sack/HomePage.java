@@ -27,8 +27,7 @@ public class HomePage extends AppCompatActivity {
     private int userId;
     private DatabaseHelper dbHelper;
     private LineChart lineChart;
-   // private TextView optimalBedtime, TimeAsleep, LastWeek, TimeAsleepRange, LastWeekRange;
-    private boolean useDummyData = true; // Set to false when using actual data
+    private boolean useDummyData = false; // Set to false when using actual data
 
     @SuppressLint("SetTextI18n")
     @Override
@@ -37,11 +36,6 @@ public class HomePage extends AppCompatActivity {
         setContentView(R.layout.homepage);
 
         TextView welcomeMessage = findViewById(R.id.welcomeMessage);
-       // optimalBedtime = findViewById(R.id.optimalBedtime);
-        //TimeAsleep = findViewById(R.id.TimeAsleep);
-        //LastWeek = findViewById(R.id.LastWeek);
-        //TimeAsleepRange = findViewById(R.id.TimeAsleepRange);
-        //LastWeekRange = findViewById(R.id.LastWeekRange);
         lineChart = findViewById(R.id.lineChart);
 
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
@@ -52,7 +46,14 @@ public class HomePage extends AppCompatActivity {
 
         dbHelper = new DatabaseHelper(this);
         userId = dbHelper.getUserIdByUsername(username);
-        dbHelper.printAllTables();
+//        dbHelper.insertHeartbeatData(1, 72, 1, 30);
+//        dbHelper.insertHeartbeatData(1, 80, 1, 30);
+//        dbHelper.insertHeartbeatData(1, 65, 1, 30);
+//        dbHelper.insertHeartbeatData(1, 85, 2, 30);
+//        dbHelper.insertHeartbeatData(1, 72.5, 2, 30);
+//        dbHelper.insertHeartbeatData(1, 70, 3, 30);
+//        dbHelper.insertHeartbeatData(1, 95, 3, 30);
+
 
         if (username != null && !username.isEmpty()) {
             welcomeMessage.setText("Welcome " + username);
@@ -159,29 +160,4 @@ public class HomePage extends AppCompatActivity {
             displayHeartbeatDataOnGraph(userId);
         });
     }
-//    void updateSleepUI() {
-//        int sleepDuration = dbHelper.getTimeAsleep(userId);
-//        String avgSleepTime = dbHelper.getAvgSleepTime(userId);
-//        int avgSleepDuration = dbHelper.getAvgSleepDuration(userId);
-//
-//        runOnUiThread(() -> {
-//            if (sleepDuration > 0) {
-//                TimeAsleep.setText(sleepDuration + " hours");
-//            } else {
-//                TimeAsleep.setText("No Data Yet");
-//            }
-//
-//            if (!avgSleepTime.equals("No Data")) {
-//                optimalBedtime.setText("Optimal Bedtime: " + avgSleepTime);
-//            } else {
-//                optimalBedtime.setText("No Data Yet");
-//            }
-//
-//            if (avgSleepDuration > 0) {
-//                LastWeek.setText(avgSleepDuration + " hours");
-//            } else {
-//                LastWeek.setText("No Data Yet");
-//            }
-//        });
-//    }
 }

@@ -155,21 +155,15 @@ private static final String CREATE_SLEEP_TABLE =
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        if (oldVersion < 2) {
-            db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_FULL_NAME + " TEXT NOT NULL DEFAULT ''");
-            db.execSQL("ALTER TABLE " + TABLE_ALARMS + " ADD COLUMN " + COLUMN_REPEAT_DAYS + " TEXT DEFAULT ''");
-            db.execSQL("ALTER TABLE " + TABLE_ALARMS + " ADD COLUMN " + COLUMN_ALARM_SOUND + " TEXT DEFAULT 'Default'"); // ✅ Fix: Space added before TEXT
-            db.execSQL("ALTER TABLE " + TABLE_ALARMS + " ADD COLUMN " + COLUMN_VIBRATE + " INTEGER DEFAULT 0"); // ✅ Fix: Space added before INTEGER
-            db.execSQL("ALTER TABLE " + TABLE_ALARMS + " ADD COLUMN " + COLUMN_ALARM_SOUND + " TEXT DEFAULT 'Default'");
-            db.execSQL("ALTER TABLE " + TABLE_ALARMS + " ADD COLUMN " + COLUMN_VIBRATE + " INTEGER DEFAULT 0");
-        }
-        if (oldVersion < 8) { //Ensure new columns are always created
-            db.execSQL("ALTER TABLE " + TABLE_ALARMS + " ADD COLUMN " + COLUMN_ALARM_SOUND + "TEXT DEFAULT 'Default'");
-            db.execSQL("ALTER TABLE " + TABLE_ALARMS + " ADD COLUMN " + COLUMN_VIBRATE + "INTEGER DEFAULT 0");
-            db.execSQL("DROP TABLE IF EXISTS " + TABLE_WIFI);
-            db.execSQL("DROP TABLE IF EXISTS " + TABLE_BULB);
-        }
+        db.execSQL("DROP TABLE IF EXISTS " + TABLE_USERS);
+        db.execSQL("DROP TABLE IF EXISTS " + TABLE_HEARTBEAT);
+        db.execSQL("DROP TABLE IF EXISTS " + TABLE_ALARMS);
+        db.execSQL("DROP TABLE IF EXISTS " + TABLE_WIFI);
+        db.execSQL("DROP TABLE IF EXISTS " + TABLE_BULB);
+        db.execSQL("DROP TABLE IF EXISTS " + TABLE_SLEEP);
 
+        // Recreate all tables
+        onCreate(db);
     }
 
 
@@ -506,13 +500,14 @@ private static final String CREATE_SLEEP_TABLE =
         if (cursor.moveToFirst()) {
             do {
                 @SuppressLint("Range") String tableName = cursor.getString(cursor.getColumnIndex("name"));
-                Log.d("DatabaseDebug", "Found Table: " + tableName);
+                Log.d("DB_DEBUG", "Found Table: " + tableName);
             } while (cursor.moveToNext());
         } else {
-            Log.d("DatabaseDebug", "No tables found in the database.");
+            Log.d("DB_DEBUG", "No tables found in the database.");
         }
         cursor.close();
     }
+
     public void insertSleepData(int userId, int sleepHour, int sleepMinute) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
@@ -531,57 +526,28 @@ private static final String CREATE_SLEEP_TABLE =
         db.update(TABLE_SLEEP, values, COLUMN_USER_REF_ID + "=? AND " + COLUMN_DATE + "=?",
                 new String[]{String.valueOf(userId), getCurrentDate()});
     }
-
-    public int getTimeAsleep(int userId) {
-        SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT sleep_hour, sleep_minute, wake_hour, wake_minute FROM sleep_data WHERE user_id=? ORDER BY date DESC LIMIT 1",
-                new String[]{String.valueOf(userId)});
-
-        if (cursor.moveToFirst()) {
-            int sleepHour = cursor.getInt(0);
-            int sleepMinute = cursor.getInt(1);
-            int wakeHour = cursor.getInt(2);
-            int wakeMinute = cursor.getInt(3);
-            cursor.close();
-
-            int sleepMinutes = (sleepHour * 60) + sleepMinute;
-            int wakeMinutes = (wakeHour * 60) + wakeMinute;
-
-            return (wakeMinutes >= sleepMinutes) ? (wakeMinutes - sleepMinutes) / 60 : (1440 - sleepMinutes + wakeMinutes) / 60;
-        }
-        cursor.close();
-        return 0;
-    }
-    public int getAvgSleepDuration(int userId) {
-        SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT AVG((wake_hour * 60 + wake_minute) - (sleep_hour * 60 + sleep_minute)) FROM sleep_data WHERE user_id=?",
-                new String[]{String.valueOf(userId)});
-
-        if (cursor.moveToFirst()) {
-            int avgMinutes = cursor.getInt(0);
-            cursor.close();
-            return avgMinutes / 60; // Convert minutes to hours
-        }
-        cursor.close();
-        return 0;
-    }
-
-    public String getAvgSleepTime(int userId) {
-        SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT AVG(sleep_hour), AVG(sleep_minute) FROM sleep_data WHERE user_id=?",
-                new String[]{String.valueOf(userId)});
-
-        if (cursor.moveToFirst()) {
-            int avgHour = cursor.getInt(0);
-            int avgMinute = cursor.getInt(1);
-            cursor.close();
-            return String.format("%02d:%02d", avgHour, avgMinute);
-        }
-        cursor.close();
-        return "No Data";
-    }
     public String getCurrentDate() {
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
         return dateFormat.format(new Date());
     }
+    public void insertHeartbeatData(int userId, double sensorData, int hour, int minute) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put("user_id", userId);
+        values.put("sensor_data", sensorData);
+        values.put("hour", hour);
+        values.put("minute", minute);
+
+        long result = db.insert("Heartbeat_sensor", null, values);
+
+        if (result != -1) {
+            Log.d("DB_INSERT", "Inserted heartbeat data successfully: UserID=" + userId +
+                    ", Data=" + sensorData + ", Time=" + hour + ":" + minute);
+        } else {
+            Log.e("DB_INSERT", "Failed to insert heartbeat data.");
+        }
+
+        db.close();
+    }
+
 }

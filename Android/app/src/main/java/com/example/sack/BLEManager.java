@@ -16,6 +16,8 @@ import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothManager;
 import android.content.SharedPreferences;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -80,6 +82,7 @@ public class BLEManager {
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
             if (newState == BluetoothProfile.STATE_CONNECTED) {
                 Log.d(TAG, "Connected to GATT server.");
+                bluetoothGatt.requestMtu(512);
                 bluetoothGatt.discoverServices();
                 if (connectionCallback != null) {
                     connectionCallback.onConnected();
@@ -210,6 +213,10 @@ public class BLEManager {
         String dataToSend = ssid + "," + password + "," + macAddress + "," + sku + "," + apiKey;
         characteristic.setValue(dataToSend.getBytes(StandardCharsets.UTF_8));
         bluetoothGatt.writeCharacteristic(characteristic);
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            bluetoothGatt.writeCharacteristic(characteristic);
+            Log.d(TAG, "Sent WiFi & Bulb data: " + dataToSend);
+        }, 500);  // 500ms delay
         Log.d(TAG, "Sent WiFi & Bulb data: " + dataToSend);
     }
 
