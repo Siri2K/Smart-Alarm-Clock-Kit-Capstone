@@ -30,9 +30,8 @@
 #define EVT_ALARM_MODE  (EventBits_t)(1<<3) // Slide_Switch on Alarm Mode
 
 // Sensors
-#define READ_TIME_BIT   (EventBits_t)(1<<4) // Slide_Switch on Alarm Mode
 #define BUZZER_ON       (EventBits_t)(1<<5) // Buzzer Activates
-#define BUZZER_SNOOZED  (EventBits_t)(1<<6) // Buzzer Activates
+#define BUZZER_SNOOZED  (EventBits_t)(1<<6) // Buzzer Snoozed
 
 
 // WIFI
@@ -123,9 +122,90 @@ TaskHandle_t setbulbhandle; //set wifi handle
 // Logging
 static const char *TAG = "Clock Log:";
 
+
+/* Static Function */
+static void chooseClockMode(clock_mode_t clockMode){
+    switch (clockMode){
+        case CLOCK:
+            ESP_LOGI(TAG,"Set to Clock Mode");
+            xEventGroupSetBits(eventGroup,EVT_CLOCK_MODE);
+            ESP_LOGI(TAG, "chooseClockMode : Event Group State %d",(int)xEventGroupGetBits(eventGroup));
+            vTaskDelay(pdMS_TO_TICKS(100)); // Wait 100ms 
+            break;
+        case TIME:
+            ESP_LOGI(TAG,"Set to Time mode");
+            xEventGroupSetBits(eventGroup,EVT_TIME_MODE);
+            ESP_LOGI(TAG, "chooseClockMode : Event Group State %d",(int)xEventGroupGetBits(eventGroup));
+            vTaskDelay(pdMS_TO_TICKS(100)); // Wait 100ms 
+            break;
+        case ALARM:
+            ESP_LOGI(TAG,"Set to Alarm mode");
+            xEventGroupSetBits(eventGroup,EVT_ALARM_MODE);
+            ESP_LOGI(TAG, "chooseClockMode : Event Group State %d",(int)xEventGroupGetBits(eventGroup));
+            vTaskDelay(pdMS_TO_TICKS(100)); // Wait 100ms 
+            break;
+        default:
+            ESP_LOGE(TAG,"chooseClockMode : SlideSwitch not Working");
+            break;
+        }
+}
+
+static void changeTimeDigit(uint8_t *time, uint8_t index){
+    if(time[index] >= 13 && index == 0){
+        time[index] = 1;
+        time[3] = (time[3] == 1)? 0:1; // Toggle AM to PM and vice-versa
+    }
+    else if(time[index] > 59 && index != 0){
+		time[index] = 0;
+    }
+    else{
+		time[index]++;
+    }
+}
+
+static void updateTime(uint8_t *time, int64_t*buttonPressTimes){
+	// Update Current Time based on PressTime
+	uint8_t timeIndex = 0;
+	
+	if(timeIndex < 3){
+		if(buttonPressTimes[0] > 100){ // Up Button
+			ESP_LOGI(TAG,"Pressed Up Button");
+			changeTimeDigit(time,timeIndex);
+		}
+		else if(buttonPressTimes[1] > 100){ // Down Button
+			ESP_LOGI(TAG,"Pressed Down Button");
+			changeTimeDigit(time,timeIndex);
+		}
+		else if(buttonPressTimes[2] > 100){ // Select Button
+			ESP_LOGI(TAG,"Pressed Select Button");
+			timeIndex++;
+		}
+	}
+	else{
+		timeIndex = 0;
+	}
+	vTaskDelay(pdMS_TO_TICKS(100));
+}
+
+static void trigerBuzzer(buzzer_t buzzer, uint8_t*currentTime, uint8_t*alarmTime){
+	uint8_t matching_am_or_pm = currentTime[3] == alarmTime[3];
+	uint8_t matching_hrs = currentTime[0] == alarmTime[0];
+	uint8_t matching_minute = currentTime[1] == alarmTime[1] || currentTime[1] <= alarmTime[1] + 2;
+
+	// Trigger Buzzer
+	if(matching_am_or_pm && matching_hrs && matching_minute){
+		ESP_LOGI(TAG,"Turn On Buzzer");
+		xEventGroupSetBits(eventGroup, BUZZER_ON);
+	}
+	else{
+		ESP_LOGI(TAG,"Turn OFF Buzzer");
+		xEventGroupSetBits(eventGroup, BUZZER_SNOOZED);
+	}
+	vTaskDelay(pdMS_TO_TICKS(100));
+}
+
 /* Function Prototypes */
 // Control Task
-
 void ControlTask();
 
 // Computation Tasks
@@ -134,16 +214,10 @@ void checkControlMode(void *pvParameters);
 void changeCurrentTime(void *pvParameters);
 void changeAlarmTime(void *pvParameters);
 void readClockTime(void *pvParameters);
+void turnOnBuzzer(void *pvParameters);
+// void setWifi(void *pvParameters);
+// void bulbthread(void *pvParameters);
 
-
-void setWifi(void *pvParameters);
-void bulbthread(void *pvParameters);
-
-// Helper Function
-EventBits_t synchronizeWait(const EventBits_t uxBitsToSet);
-EventBits_t synchronizeSet(const EventBits_t uxBitsToSet);
-EventBits_t synchronizeClear(const EventBits_t uxBitsToSet);
-void updateTime(parts_t *part, uint8_t currentTime, uint8_t timeIndex);
 
 /* Main Functions */
 void app_main(void){
@@ -196,14 +270,14 @@ void ControlTask(){
 
     /* Create All Tasks */
     // Initalize All HW
-    xTaskCreate(initializeAllHWTask,"HardWare Initialization", sizeof(parts_t),(void*)&parts, configMAX_PRIORITIES -1, &initializeAllHWHandle);
+    xTaskCreate(initializeAllHWTask,"HardWare Initialization", sizeof(parts_t),(void*)&parts, 2, &initializeAllHWHandle);
     // Create All Functionality tasks
-    // xTaskCreatePinnedToCore(setupBLE,"Setup BLE", sizeof(parts_t),part, tskIDLE_PRIORITY + 4,&setupBLEHandle,0);
-    xTaskCreate(checkControlMode,"Check Clock Mode", sizeof(parts_t),(void*)&parts, tskIDLE_PRIORITY + 3,&checkControlModeHandle);
-    xTaskCreate(readClockTime,"Read Current Time", sizeof(parts_t),(void*)&parts, tskIDLE_PRIORITY,&readClockTimeHandle);
-    xTaskCreate(changeCurrentTime,"Change Curent Time", sizeof(parts_t),(void*)&parts, tskIDLE_PRIORITY + 1,&changeCurrentTimeHandle);
-    xTaskCreate(changeAlarmTime,"Change Alarm Time", sizeof(parts_t),(void*)&parts, tskIDLE_PRIORITY + 1,&changeAlarmTimeHandle);
-    xTaskCreate(bulbthread,"Bulb Thread",sizeof(parts_t),(void*)&parts, tskIDLE_PRIORITY + 1,&setbulbhandle);
+    xTaskCreate(checkControlMode,"Check Clock Mode", sizeof(parts_t),(void*)&parts,1,&checkControlModeHandle);
+    xTaskCreate(readClockTime,"Read Current Time", sizeof(parts_t),(void*)&parts,1,&readClockTimeHandle);
+    xTaskCreate(changeCurrentTime,"Change Curent Time", sizeof(parts_t),(void*)&parts,1,&changeCurrentTimeHandle);
+    xTaskCreate(changeAlarmTime,"Change Alarm Time", sizeof(parts_t),(void*)&parts,1,&changeAlarmTimeHandle);
+    xTaskCreate(turnOnBuzzer,"Turn On Buzzer",sizeof(parts_t),(void*)&parts,1,&setbulbhandle);
+    // xTaskCreate(bulbthread,"Bulb Thread",sizeof(parts_t),(void*)&parts,1,&setbulbhandle);
 
     // Start Schedule
     vTaskStartScheduler();
@@ -236,114 +310,92 @@ void initializeAllHWTask(void *pvParameters){
 }
 
 void checkControlMode(void *pvParameters){
+    // Define Variables
+    EventBits_t bits;
+    parts_t *partPtr;
+    
     while(true){
         // Check Event Group
-        ESP_LOGI(TAG, "Event Group State %d",(int)xEventGroupGetBits(eventGroup));
+        ESP_LOGI(TAG, "CheckControlMode Function");
+        bits = xEventGroupWaitBits(eventGroup,EVT_HW_INITIALIZED,pdFALSE,pdTRUE,pdMS_TO_TICKS(60000));// Check for 6s
         
-        ESP_LOGI(TAG,"checkControlMode : Wait For hardware to be initialized");
-        EventBits_t bits = xEventGroupWaitBits(eventGroup,EVT_HW_INITIALIZED,pdFALSE,pdFALSE,portMAX_DELAY);
-        if(bits&&EVT_HW_INITIALIZED==EVT_HW_INITIALIZED){
-            ESP_LOGI(TAG,"CM Wait success");
-        }else{
-            ESP_LOGI(TAG,"CM Wait Failed");
-            continue;
-        }
-        ESP_LOGI(TAG,"checkControlMode : Hardware to be initialized");
+        if(bits == EVT_HW_INITIALIZED){
+            ESP_LOGI(TAG,"CheckControlMode : Hardware initialized");
+            
+            // Initialize Synchronized variables
+            partPtr = (parts_t*)pvParameters;
 
-        // Extract variables
-        // esp_task_wdt_reset();
-        parts_t *partPtr = (parts_t*)(pvParameters);
-        slide_switch_t slideSwitch = partPtr->slide_switch;
-        
-        clock_mode_t clockMode = slideSwitch.mode();
-        ESP_LOGI(TAG,"Clock Mode : %d",clockMode);
-        
-
-        // Choose Time Tasks
-        switch (clockMode){
-        case CLOCK:
-            ESP_LOGI(TAG,"Set to Clock Mode");
-                xEventGroupSetBits(eventGroup,EVT_CLOCK_MODE);
-            ESP_LOGI(TAG, "checkControlMode : Event Group State %d",(int)xEventGroupGetBits(eventGroup));
-            taskYIELD(); // Yield and Allow Other States to try
-            break;
-        case TIME:
-            ESP_LOGI(TAG,"Set to Time mode");
-            xEventGroupSetBits(eventGroup,EVT_TIME_MODE);
-            ESP_LOGI(TAG, "checkControlMode : Event Group State %d",(int)xEventGroupGetBits(eventGroup));
-            taskYIELD(); // Yield and Allow Other States to try
-            break;
-        case ALARM:
-            ESP_LOGI(TAG,"Set to Alarm mode");
-            xEventGroupSetBits(eventGroup,EVT_ALARM_MODE);
-            ESP_LOGI(TAG, "checkControlMode : Event Group State %d",(int)xEventGroupGetBits(eventGroup));
-            taskYIELD(); // Yield and Allow Other States to try
-            break;
-        default:
-            ESP_LOGE(TAG,"SlideSwitch not Working");
-            break;
+            // Setup Clock Modes
+            chooseClockMode(partPtr->slide_switch.mode());
         }
+        else{
+            ESP_LOGI(TAG,"CheckControlMode : Hardware Not Initialized");
+        }
+        taskYIELD(); // Allow Other Tasks to start
     }
+
+    // Kill After Turning off
     vTaskDelete(checkControlModeHandle);
 }
 
 void changeCurrentTime(void *pvParameters){
     // Update Current Time
+    EventBits_t bits;
+    parts_t *part;
+    
+    char time_str[10];
+	int64_t buttonPressTimes[3];
+    // lcd_t lcd = part->lcd;
+    
     while (true){
        // Check Event Group
-       ESP_LOGI(TAG, "changeAlarmTime : Event Group State %d",(int)xEventGroupGetBits(eventGroup));
+       ESP_LOGI(TAG, "ChangeCurrentTime Function");
+       
+       // Wait for Bits
+       ESP_LOGI(TAG, "changeCurrentTime : Wait for HardWare + Time mode to be set");
+       bits = xEventGroupWaitBits(eventGroup,EVT_HW_INITIALIZED | EVT_TIME_MODE ,pdFALSE,pdFALSE,60000);
 
-       ESP_LOGI(TAG, "changeAlarmTime : Wait for HardWare to be initialized");
-       EventBits_t bits=  xEventGroupWaitBits(eventGroup,EVT_HW_INITIALIZED | EVT_TIME_MODE ,pdFALSE,pdFALSE,100); // Update Clock Time
-       if(bits&&(EVT_HW_INITIALIZED | EVT_TIME_MODE)==(EVT_HW_INITIALIZED | EVT_TIME_MODE)){
-        ESP_LOGI(TAG,"CT Wait success");
-        }else{
-        ESP_LOGI(TAG,"CT Wait Failed");
-        continue;
-        }
-       ESP_LOGI(TAG, "changeAlarmTime : HardWare initialized");
+       if(bits |= (EVT_HW_INITIALIZED | EVT_TIME_MODE)){ // Check EVT_HW_INITIALIZED & EVT_TIME_MODE are set
+            ESP_LOGI(TAG, "changeCurrentTime : HardWare + Time mode are set");
+			
+			// Synchronize Variables
+			part = (parts_t*)pvParameters;
 
-       // Log
-       ESP_LOGI(TAG,"changeAlarmTime: Change Current Alarm Task");
-        
-        parts_t *part = (parts_t*)pvParameters;
-        button_t button = part->button;
-        // lcd_t lcd = part->lcd;
-        uint8_t timeIndex = 0;
-        char time_str[10];
+			// Update Displayed Time
+			buttonPressTimes[0] = part->button.pressDuration(UP_BUTTON);
+			buttonPressTimes[1] = part->button.pressDuration(DOWN_BUTTON);
+			buttonPressTimes[2] = part->button.pressDuration(SELECT_BUTTON);
+			updateTime(part->currentTime,buttonPressTimes);
 
+			// Display Time
+			ESP_LOGI(
+				TAG,
+				"Display Time : %d:%d:%d",
+				part->currentTime[0],
+				part->currentTime[1],
+				part->currentTime[2]
+			);
 
-        // Act based on button pressed
-        int64_t upPressTime = button.pressDuration(UP_BUTTON);
-        int64_t downPressTime = button.pressDuration(DOWN_BUTTON);
-        int64_t selectPressTime = button.pressDuration(SELECT_BUTTON);
-        if(timeIndex < 3){
-            uint8_t currentTime = part->currentTime[timeIndex];
-            if(button.pressed(UP_BUTTON) || upPressTime > 100){ // Up Button
-                ESP_LOGI(TAG,"Pressed Up Button");
-                updateTime(part,currentTime,timeIndex);
-            }
-            else if(button.pressed(DOWN_BUTTON) || downPressTime > 100){ // Down Button
-                ESP_LOGI(TAG,"Pressed Down Button");
-                updateTime(part,currentTime,timeIndex);
-            }
-            else if(button.pressed(SELECT_BUTTON) || selectPressTime > 100){ // Select Button
-                ESP_LOGI(TAG,"Pressed Select Button");
-                timeIndex++;
-            }
-        }
-        else{
-            timeIndex = 0;
-        }
+			// Clear Bit
+			xEventGroupClearBits(eventGroup,EVT_TIME_MODE);
 
-        ESP_LOGI(
-            TAG,
-            "Display Time : %d:%d:%d",
-            part->currentTime[0],
-            part->currentTime[1],
-            part->currentTime[2]
-        );
+       }
+	   else if (bits == EVT_HW_INITIALIZED){
+			ESP_LOGI(TAG, "changeCurrentTime : HardWare only is set");
 
+			// Display Time
+			ESP_LOGI(
+				TAG,
+				"Display Time : %d:%d:%d",
+				part->currentTime[0],
+				part->currentTime[1],
+				part->currentTime[2]
+			);
+	   }
+	   else{
+			ESP_LOGI(TAG, "changeCurrentTime : No Events set");
+	   }
+		
         // Display Time to LCD
         /*
         ESP_LOGI(TAG,"Display Time on LCD");
@@ -352,172 +404,188 @@ void changeCurrentTime(void *pvParameters){
         lcd.display((void*)(&lcd),lcdCharacters,0,20,((part->currentTime[3] == 0)? "am" : "pm"));
         */
         
-
-        xEventGroupClearBits(eventGroup,EVT_TIME_MODE);
         taskYIELD(); // Allow it to switch to another function
     }
-    
-    
+
+	// Kill After Turning off
+    vTaskDelete(changeCurrentTimeHandle);
 }
 
 void changeAlarmTime(void *pvParameters){
-    // Change Time
-    while(true){
-        // Check Event Group
-        ESP_LOGI(TAG, "changeAlarmTime : Event Group State %d",(int)xEventGroupGetBits(eventGroup));
-        ESP_LOGI(TAG,"Task high water mark: %d bytes\n", (int)uxTaskGetStackHighWaterMark(NULL));
-
-        ESP_LOGI(TAG, "changeAlarmTime : Wait for HardWare to be initialized");
-        EventBits_t bits = xEventGroupWaitBits(eventGroup,EVT_HW_INITIALIZED | EVT_ALARM_MODE ,pdFALSE,pdFALSE,1000); // Update Clock Time
-        if(bits&&(EVT_HW_INITIALIZED | EVT_ALARM_MODE)==(EVT_HW_INITIALIZED | EVT_ALARM_MODE)){
-            ESP_LOGI(TAG,"AT Wait success");
-            }else{
-                ESP_LOGI(TAG,"AT Wait Failed");
-                taskYIELD();
+    // Update Current Time
+    EventBits_t bits;
+    parts_t *part;
     
-            }
-            
-        ESP_LOGI(TAG, "changeAlarmTime : HardWare initialized");
+    char time_str[10];
+	int64_t buttonPressTimes[3];
+    // lcd_t lcd = part->lcd;
+    
+    while (true){
+       // Check Event Group
+       ESP_LOGI(TAG, "changeAlarmTime Function");
+       
+       // Wait for Bits
+       ESP_LOGI(TAG, "changeAlarmTime : Wait for HardWare + Alarm mode to be set");
+       bits = xEventGroupWaitBits(eventGroup,EVT_HW_INITIALIZED | EVT_ALARM_MODE ,pdFALSE,pdFALSE,60000);
 
-        // Log
-        ESP_LOGI(TAG,"changeAlarmTime: Change Current Alarm Task");
-        
-        parts_t *part = (parts_t*)pvParameters;
-        button_t button = part->button;
-        // lcd_t lcd = part->lcd;
-        uint8_t timeIndex = 0;
-        char time_str[10];
-        
-        // Act based on button pressed
-        int64_t upPressTime = button.pressDuration(UP_BUTTON);
-        int64_t downPressTime = button.pressDuration(DOWN_BUTTON);
-        int64_t selectPressTime = button.pressDuration(SELECT_BUTTON);
+       if(bits |= (EVT_HW_INITIALIZED | EVT_ALARM_MODE)){ // Check EVT_HW_INITIALIZED & EVT_TIME_MODE are set
+            ESP_LOGI(TAG, "changeCurrentTime : HardWare + Alarm mode are set");
+			
+			// Synchronize Variables
+			part = (parts_t*)pvParameters;
 
-        if(timeIndex < 3){
-            uint8_t alarmTime = part->alarmTime[timeIndex];
-            if(button.pressed(UP_BUTTON) || upPressTime > 100){ // Up Button
-                ESP_LOGI(TAG,"Pressed Up Button");
-                updateTime(part,alarmTime,timeIndex);
-            }
-            else if(button.pressed(DOWN_BUTTON) || downPressTime > 100){ // Down Button
-                ESP_LOGI(TAG,"Pressed Down Button");
-                updateTime(part,alarmTime,timeIndex);
-            }
-            else if(button.pressed(SELECT_BUTTON) || selectPressTime > 100){ // Select Button
-                ESP_LOGI(TAG,"Pressed Select Button");
-                timeIndex++;
-            }
-        }
-        else{
-            timeIndex = 0;
-        }
+			// Update Displayed Time
+			buttonPressTimes[0] = part->button.pressDuration(UP_BUTTON);
+			buttonPressTimes[1] = part->button.pressDuration(DOWN_BUTTON);
+			buttonPressTimes[2] = part->button.pressDuration(SELECT_BUTTON);
+			updateTime(part->alarmTime,buttonPressTimes);
 
+			// Display Time
+			ESP_LOGI(
+				TAG,
+				"Display Time : %d:%d:%d",
+				part->alarmTime[0],
+				part->alarmTime[1],
+				part->alarmTime[2]
+			);
+
+			// Clear Bit
+			xEventGroupClearBits(eventGroup,EVT_TIME_MODE);
+
+       }
+	   else if (bits == EVT_HW_INITIALIZED){
+			ESP_LOGI(TAG, "changeCurrentTime : HardWare only is set");
+
+			// Display Time
+			ESP_LOGI(
+				TAG,
+				"Display Time : %d:%d:%d",
+				part->currentTime[0],
+				part->currentTime[1],
+				part->currentTime[2]
+			);
+	   }
+	   else{
+			ESP_LOGI(TAG, "changeCurrentTime : No Events set");
+	   }
+		
         // Display Time to LCD
         /*
         ESP_LOGI(TAG,"Display Time on LCD");
-        snprintf(time_str, sizeof(time_str), "%02d:%02d", part->alarmTime[0], part->alarmTime[1]);
-        lcd.display((void*)(&lcd),lcdCharacters,1,10,time_str);
-        lcd.display((void*)(&lcd),lcdCharacters,1,20,((part->alarmTime[3] == 0)? "am" : "pm"));
+        snprintf(time_str, sizeof(time_str), "%02d:%02d", part->currentTime[0], part->currentTime[1]);
+        lcd.display((void*)(&lcd),lcdCharacters,0,10,time_str);
+        lcd.display((void*)(&lcd),lcdCharacters,0,20,((part->currentTime[3] == 0)? "am" : "pm"));
         */
-
-        // Reset index
-        if(timeIndex >=3){
-            timeIndex = 0;
-        }
-
-        xEventGroupClearBits(eventGroup,EVT_ALARM_MODE);
-        taskYIELD();
-
-    }    
+        
+        taskYIELD(); // Allow it to switch to another function
+    }
+	
+	// Kill After Turning off
+    vTaskDelete(changeAlarmTimeHandle);
 }
 
 void readClockTime(void *pvParameters){
-   // Log
-   ESP_LOGI(TAG,"Read Clock Time");
-   
-    // Components
-   parts_t *part = (parts_t*)pvParameters;
+  // Update Current Time
+   parts_t *part;
+   EventBits_t bits;
 
    // Isolated Needed HW
-   internal_real_time_clock_t rtc = part->rtc;
    // lcd_t lcd = part->lcd;
-   buzzer_t buzzer = part->buzzer;
    char time_str[10];
 
    // Read Clock Time
    while(true){
-    EventBits_t bits = xEventGroupWaitBits(eventGroup,EVT_HW_INITIALIZED|EVT_CLOCK_MODE,pdFALSE,pdFALSE,portMAX_DELAY); // Do Not Read until Read Time Clock Time event is active
-    if(bits&&(EVT_HW_INITIALIZED|EVT_CLOCK_MODE)==(EVT_HW_INITIALIZED|EVT_CLOCK_MODE)){
-        ESP_LOGI(TAG,"CT Wait success");
-    }else{
-        ESP_LOGI(TAG,"CT Wait Failed");
-        continue;
-    }
-    xEventGroupClearBits(eventGroup,READ_TIME_BIT);
+		ESP_LOGI(TAG,"readClockTime Function");
+		
+		// Wait for Bits
+		ESP_LOGI(TAG, "changeAlarmTime : Wait for HardWare + Clock mode to be set");
+		bits = xEventGroupWaitBits(eventGroup,EVT_HW_INITIALIZED|EVT_CLOCK_MODE,pdFALSE,pdFALSE,60000); // Check Clock Time
+		if(bits |= (EVT_HW_INITIALIZED|EVT_CLOCK_MODE)){
+			ESP_LOGI(TAG, "changeCurrentTime : HardWare + Clock mode are set");
 
-    ESP_LOGI(TAG,"Read Time from RTC Component");
-    rtc.readTime(
-        &part->currentTime[0],
-        &part->currentTime[1],
-        &part->currentTime[2],
-        &part->currentTime[3]
-    );
+			// Synchronize Variables
+			part = (parts_t*)pvParameters;
 
-    // Display Time on LCD
-    /*
-    ESP_LOGI(TAG,"Display Time on LCD");
-    snprintf(time_str, sizeof(time_str), "%02d:%02d", part->currentTime[0], part->currentTime[1]);
-    lcd.display((void*)(&lcd),lcdCharacters,0,10,time_str);
-    lcd.display((void*)(&lcd),lcdCharacters,0,20,((part->currentTime[3] == 0)? "am" : "pm"));
-    xEventGroupSetBits(eventGroup,READ_TIME_BIT);
-    */
+			// Read the Time
+			part->rtc.readTime(
+				&part->currentTime[0],
+				&part->currentTime[1],
+				&part->currentTime[2],
+				&part->currentTime[3]
+			);
 
-    // Setup Alarm
-    uint8_t triggerAlarm = (part->currentTime[0] == part->alarmTime[0]) & (part->currentTime[3] == part->alarmTime[3]); // Check for Hour and AM & PM
-    triggerAlarm &= (part->currentTime[1] == part->alarmTime[1]) || (part->currentTime[1] <= part->alarmTime[1] + 2); // Check for Minutes
-    if(triggerAlarm){
-        ESP_LOGI(TAG,"Turn ON Buzzer");
-        xEventGroupSetBits(eventGroup,BUZZER_ON);
-        alarmActive = 1;
-    }
-    else{
-        ESP_LOGI(TAG,"Turn OFF Buzzer");
-        buzzer.powerOn(BUZZER_MODE,BUZZER_CHANNEL,NONE); // Kill Alarm
-        xEventGroupClearBits(eventGroup,BUZZER_ON);
-    }
-   }
+			// Trigger Alarm
+			trigerBuzzer(part->buzzer,part->currentTime, part->alarmTime);
+			taskYIELD();
+		}
+	}
+
+	// Kill task After Turning Off
+    vTaskDelete(readClockTimeHandle);
+
 }
 
 void turnOnBuzzer(void *pvParameters){
     // Turn On Buzzer
-    while(true){
-        parts_t *part = (parts_t*)pvParameters;
-        buzzer_t buzzer = part->buzzer;
-        int64_t buzzerStartTime = 0, duration = 0;
-        int powerLevel = LOW;
+    EventBits_t bits;
+	parts_t *part;
+	int powerLevel = LOW;
+	int64_t buzzerStartTime = 0, duration = 0;
+	
+	while(true){
+		ESP_LOGI(TAG,"turnOnBuzzer Function");
 
-        xEventGroupWaitBits(eventGroup,EVT_HW_INITIALIZED|EVT_CLOCK_MODE|BUZZER_ON,pdFALSE,pdFALSE,portMAX_DELAY); // Do Not Read until Read Time Clock Time event is active
-    
-        // Get Buzzer Levels
-        if(buzzerStartTime == 0 || duration >= 1000){ // Notify that Buzzer is ON
-            buzzerStartTime = esp_timer_get_time(); // Record Current Time
-            powerLevel++;
-        }
-        else{
-            duration = esp_timer_get_time() - buzzerStartTime;
-        }
+		// Wait for Bits
+		ESP_LOGI(TAG, "turnOnBuzzer : Wait for HardWare + Clock mode to be set");
+		bits = xEventGroupWaitBits(eventGroup,EVT_HW_INITIALIZED|EVT_CLOCK_MODE|BUZZER_ON|BUZZER_SNOOZED,pdFALSE,pdFALSE,60000); // Check Clock Time
+		if(bits |= EVT_HW_INITIALIZED|EVT_CLOCK_MODE|BUZZER_ON){
+			ESP_LOGI(TAG, "turnOnBuzzer : HardWare + Clock mode + Buzzer On set");
 
-        // Setup PWM
-        if(powerLevel == LOW || powerLevel == MID || powerLevel == HIGH || powerLevel == MAX){
-            ESP_LOGI(TAG,"Increase Power");
-            buzzer.powerOn(BUZZER_MODE,BUZZER_CHANNEL,(buzzer_power_t)powerLevel);
-            vTaskDelay(pdMS_TO_TICKS(200));
-            buzzer.powerOn(BUZZER_MODE,BUZZER_CHANNEL,NONE);
-            vTaskDelay(pdMS_TO_TICKS(200));
-        }
+            part = (parts_t*)pvParameters;
+
+			// Get Buzzer Levels
+			if(buzzerStartTime == 0 || (duration % 10000000 == 0)){ // Increemnt Time every 10s
+				buzzerStartTime = esp_timer_get_time(); // Record Current Time
+                if(powerLevel >= MAX){
+                    powerLevel = MAX;
+                }
+                else{
+                    powerLevel++;
+                }
+			}
+			else{
+				duration = esp_timer_get_time() - buzzerStartTime;
+			}
+	
+			// Setup PWM
+			if(powerLevel == LOW || powerLevel == MID || powerLevel == HIGH || powerLevel == MAX){
+				ESP_LOGI(TAG,"Increase Power");
+				part->buzzer.powerOn(BUZZER_MODE,BUZZER_CHANNEL,(buzzer_power_t)powerLevel);
+				vTaskDelay(pdMS_TO_TICKS(200));
+			}
+		}
+		else if(bits |= EVT_HW_INITIALIZED|EVT_CLOCK_MODE|BUZZER_SNOOZED){
+			ESP_LOGI(TAG, "turnOnBuzzer : HardWare + Clock mode + Buzzer Snoozed set");
+			part->buzzer.powerOn(BUZZER_MODE,BUZZER_CHANNEL,NONE);
+			vTaskDelay(pdMS_TO_TICKS(200));
+		}
+		else if(bits |= EVT_HW_INITIALIZED|EVT_CLOCK_MODE){
+			ESP_LOGI(TAG, "turnOnBuzzer : HardWare + Clock mode set");
+			vTaskDelay(pdMS_TO_TICKS(100));
+		}
+		else if(bits |= EVT_HW_INITIALIZED){
+			ESP_LOGI(TAG, "turnOnBuzzer : HardWare set");
+			vTaskDelay(pdMS_TO_TICKS(100));
+		}
+		else{
+			ESP_LOGI(TAG, "turnOnBuzzer : Nothing Set mode set");
+			vTaskDelay(pdMS_TO_TICKS(100));
+		}
+		taskYIELD();
     }
 }
 
+/*
 IRAM_ATTR void setWifi(void *pvParameters){
     // synchronizeWait(WIFI_CONFIG); //makes sure that the wifi SSID and Password are set (needs to be done later with BLE data from phone)
     // initialize Wifi
@@ -537,7 +605,6 @@ IRAM_ATTR void setWifi(void *pvParameters){
     // synchronizeSet(WIFI_CONNECTED);
     ESP_LOGI(TAG,"wifi connection");
 }
-
 
 void bulbthread(void *pvParameters){
     
@@ -570,17 +637,4 @@ void bulbthread(void *pvParameters){
             }
     }
 }
-
-void updateTime(parts_t *part, uint8_t time, uint8_t index){
-    if(time >= 13 && index == 0){
-        part->currentTime[index] = 1;
-        part->currentTime[3] = (part->currentTime[3] == 1)? 0:1; // Toggle AM to PM and vice-versa
-    }
-    else if(time > 59 && index != 0){
-        part->currentTime[index] = 0;
-    }
-    else{
-        part->currentTime[index]++;
-    }
-
-}
+*/
