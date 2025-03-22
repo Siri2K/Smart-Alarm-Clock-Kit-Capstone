@@ -3,6 +3,7 @@
 
 
 /* Drivers */
+#include "freertos/FreeRTOS.h"
 #include <driver/gpio.h>
 #include <driver/ledc.h>
 

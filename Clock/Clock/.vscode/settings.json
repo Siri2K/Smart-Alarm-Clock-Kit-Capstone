@@ -28,7 +28,9 @@
         "freertosconfig.h": "c",
         "freertos.h": "c",
         "compare": "c",
-        "cstdint": "c"
+        "cstdint": "c",
+        "cstring": "c",
+        "typeinfo": "c"
     },
     "idf.flashType": "UART",
     "idf.portWin": "COM8",

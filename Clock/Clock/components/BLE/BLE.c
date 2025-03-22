@@ -21,7 +21,11 @@ uint8_t storedWatchData[6];
 char storedPhoneData0[64]; 
 char storedPhoneData1[64];
 char alarmTime[8];
-char WifiSSID[64], WifiPassword[64], WifiMacAddress[18], WifiSku[64], WifiApiKey[64];
+char WifiSSID[64] = " ";
+char WifiPassword[64] = " "; 
+char WifiMacAddress[18] = " ";
+char WifiSku[64] = " ";
+char WifiApiKey[64] = " ";
 
 
 static const char *TAG = CLOCK_NAME;

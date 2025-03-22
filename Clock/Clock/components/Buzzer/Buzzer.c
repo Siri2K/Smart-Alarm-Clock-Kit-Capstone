@@ -80,4 +80,12 @@ void setPowerOn(ledc_mode_t mode,ledc_channel_t channel, buzzer_power_t buzzerPo
         ESP_LOGE(TAG, "Failed To Update Buzzer Cycle, err : %d", (int8_t)status);
         return;
     }
+    vTaskDelay(100/portTICK_PERIOD_MS);
+
+    status = ledc_stop(mode,channel,NONE);
+    if(status != ESP_OK){
+        ESP_LOGE(TAG, "Failed To Stop Buzzer Cycle, err : %d", (int8_t)status);
+        return;
+    }
+    
 }
