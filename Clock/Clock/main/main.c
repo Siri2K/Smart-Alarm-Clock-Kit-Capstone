@@ -75,7 +75,7 @@ typedef struct parts_t{
 
 /* Global Objects/Variables */
 // Part
-parts_t *parts;
+parts_t parts;
 
 // Variables
 uint8_t alarmActive = 0;
@@ -247,15 +247,15 @@ void app_main(void){
     // 2) Initialize Time
     ESP_LOGI(TAG,"Initialize Time");
     for(int i=0; i<3; i++){
-        parts->currentTime[i] = (i==0)?12:0;
-        parts->alarmTime[i] = (i==0)?8:0;
+        parts.currentTime[i] = (i==0)?12:0;
+        parts.alarmTime[i] = (i==0)?8:0;
     }
     // 3) Store Time
     for(int i=0;i<4;i++){
         storedWatchData[i] = 0;
     }
-    storedWatchData[4] = parts->currentTime[0];
-    storedWatchData[5] = parts->currentTime[1];
+    storedWatchData[4] = parts.currentTime[0];
+    storedWatchData[5] = parts.currentTime[1];
 
     // Control Task
     ControlTask();
@@ -290,20 +290,20 @@ void ControlTask(){
 
 void initializeAllHWTask(void *pvParameters){
     // Initialize Components
-    initializeSlideSwitch(&parts->slide_switch);
-    initializeButton(&parts->button);
-    initializeBuzzer(&parts->buzzer);
-    initializeRTC(&parts->rtc);
-    //initializeLCD(&parts->lcd);
+    initializeSlideSwitch(&parts.slide_switch);
+    initializeButton(&parts.button);
+    initializeBuzzer(&parts.buzzer);
+    initializeRTC(&parts.rtc);
+    //initializeLCD(&parts.lcd);
 
     // Intialize Current and Alarm Time
     ESP_LOGI(TAG,"Set Default Time to RTC");
 
-    parts->rtc.writeTime(
-        parts->currentTime[0], // hour = 0100 1100 -> 12AM
-        parts->currentTime[1], // minute = 0x00 -> 00
-        parts->currentTime[2], // Second = 0x00 -> 00
-        parts->currentTime[3] 
+    parts.rtc.writeTime(
+        parts.currentTime[0], // hour = 0100 1100 -> 12AM
+        parts.currentTime[1], // minute = 0x00 -> 00
+        parts.currentTime[2], // Second = 0x00 -> 00
+        parts.currentTime[3] 
     );
     
     // Set Event
@@ -317,7 +317,6 @@ void initializeAllHWTask(void *pvParameters){
 void checkControlMode(void *pvParameters){
     // Define Variables
     EventBits_t bits;
-    parts_t *parts;
     
     while(true){
         // Check Event Group
@@ -327,11 +326,8 @@ void checkControlMode(void *pvParameters){
         if((bits & EVT_HW_INITIALIZED) == EVT_HW_INITIALIZED){
             ESP_LOGI(TAG,"CheckControlMode : Hardware initialized");
             
-            // Initialize Synchronized variables
-            parts = (parts_t*)pvParameters;
-
             // Setup Clock Modes
-            chooseClockMode(parts->slide_switch.mode());
+            chooseClockMode(parts.slide_switch.mode());
         }
         else{
             ESP_LOGI(TAG,"CheckControlMode : Hardware Not Initialized");
@@ -347,10 +343,9 @@ void changeCurrentTime(void *pvParameters){
     // Update Current Time
     EventBits_t bits;
     
-    
     char time_str[10];
 	int64_t buttonPressTimes[3];
-    // lcd_t lcd = parts->lcd;
+    // lcd_t lcd = parts.lcd;
     
     while (true){
        // Check Event Group
@@ -362,23 +357,19 @@ void changeCurrentTime(void *pvParameters){
 
        if((bits & (EVT_HW_INITIALIZED | EVT_TIME_MODE)) == (EVT_HW_INITIALIZED | EVT_TIME_MODE)){ // Check EVT_HW_INITIALIZED & EVT_TIME_MODE are set
             ESP_LOGI(TAG, "changeCurrentTime : HardWare + Time mode are set");
-			
-			// Synchronize Variables
-			parts = (parts_t*)pvParameters;
-
 			// Update Displayed Time
-			buttonPressTimes[0] = parts->button.pressDuration(UP_BUTTON);
-			buttonPressTimes[1] = parts->button.pressDuration(DOWN_BUTTON);
-			buttonPressTimes[2] = parts->button.pressDuration(SELECT_BUTTON);
-			updateTime(parts->currentTime,buttonPressTimes);
+			buttonPressTimes[0] = parts.button.pressDuration(UP_BUTTON);
+			buttonPressTimes[1] = parts.button.pressDuration(DOWN_BUTTON);
+			buttonPressTimes[2] = parts.button.pressDuration(SELECT_BUTTON);
+			updateTime(parts.currentTime,buttonPressTimes);
 
 			// Display Time
 			ESP_LOGI(
 				TAG,
 				"Display Time : %d:%d:%d",
-				parts->currentTime[0],
-				parts->currentTime[1],
-				parts->currentTime[2]
+				parts.currentTime[0],
+				parts.currentTime[1],
+				parts.currentTime[2]
 			);
 
 			// Clear Bit
@@ -389,15 +380,15 @@ void changeCurrentTime(void *pvParameters){
 			ESP_LOGI(TAG, "changeCurrentTime : HardWare only is set");
 
             // Synchronize Variables
-			parts = (parts_t*)pvParameters;
+			
 
 			// Display Time
 			ESP_LOGI(
 				TAG,
 				"Display Time : %d:%d:%d",
-				parts->currentTime[0],
-				parts->currentTime[1],
-				parts->currentTime[2]
+				parts.currentTime[0],
+				parts.currentTime[1],
+				parts.currentTime[2]
 			);
 	   }
 	   else{
@@ -407,9 +398,9 @@ void changeCurrentTime(void *pvParameters){
         // Display Time to LCD
         /*
         ESP_LOGI(TAG,"Display Time on LCD");
-        snprintf(time_str, sizeof(time_str), "%02d:%02d", parts->currentTime[0], parts->currentTime[1]);
+        snprintf(time_str, sizeof(time_str), "%02d:%02d", parts.currentTime[0], parts.currentTime[1]);
         lcd.display((void*)(&lcd),lcdCharacters,0,10,time_str);
-        lcd.display((void*)(&lcd),lcdCharacters,0,20,((parts->currentTime[3] == 0)? "am" : "pm"));
+        lcd.display((void*)(&lcd),lcdCharacters,0,20,((parts.currentTime[3] == 0)? "am" : "pm"));
         */
         
         taskYIELD(); // Allow it to switch to another function
@@ -426,7 +417,7 @@ void changeAlarmTime(void *pvParameters){
     
     char time_str[10];
 	int64_t buttonPressTimes[3];
-    // lcd_t lcd = parts->lcd;
+    // lcd_t lcd = parts.lcd;
     
     while (true){
        // Check Event Group
@@ -440,21 +431,21 @@ void changeAlarmTime(void *pvParameters){
             ESP_LOGI(TAG, "changeCurrentTime : HardWare + Alarm mode are set");
 			
 			// Synchronize Variables
-			parts = (parts_t*)pvParameters;
+			
 
 			// Update Displayed Time
-			buttonPressTimes[0] = parts->button.pressDuration(UP_BUTTON);
-			buttonPressTimes[1] = parts->button.pressDuration(DOWN_BUTTON);
-			buttonPressTimes[2] = parts->button.pressDuration(SELECT_BUTTON);
-			updateTime(parts->alarmTime,buttonPressTimes);
+			buttonPressTimes[0] = parts.button.pressDuration(UP_BUTTON);
+			buttonPressTimes[1] = parts.button.pressDuration(DOWN_BUTTON);
+			buttonPressTimes[2] = parts.button.pressDuration(SELECT_BUTTON);
+			updateTime(parts.alarmTime,buttonPressTimes);
 
 			// Display Time
 			ESP_LOGI(
 				TAG,
 				"Display Time : %d:%d:%d",
-				parts->alarmTime[0],
-				parts->alarmTime[1],
-				parts->alarmTime[2]
+				parts.alarmTime[0],
+				parts.alarmTime[1],
+				parts.alarmTime[2]
 			);
 
 			// Clear Bit
@@ -465,15 +456,15 @@ void changeAlarmTime(void *pvParameters){
 			ESP_LOGI(TAG, "changeCurrentTime : HardWare only is set");
 
             // Synchronize Variables
-			parts = (parts_t*)pvParameters;
+			
 
 			// Display Time
 			ESP_LOGI(
 				TAG,
 				"Display Time : %d:%d:%d",
-				parts->currentTime[0],
-				parts->currentTime[1],
-				parts->currentTime[2]
+				parts.currentTime[0],
+				parts.currentTime[1],
+				parts.currentTime[2]
 			);
 	   }
 	   else{
@@ -483,9 +474,9 @@ void changeAlarmTime(void *pvParameters){
         // Display Time to LCD
         /*
         ESP_LOGI(TAG,"Display Time on LCD");
-        snprintf(time_str, sizeof(time_str), "%02d:%02d", parts->currentTime[0], parts->currentTime[1]);
+        snprintf(time_str, sizeof(time_str), "%02d:%02d", parts.currentTime[0], parts.currentTime[1]);
         lcd.display((void*)(&lcd),lcdCharacters,0,10,time_str);
-        lcd.display((void*)(&lcd),lcdCharacters,0,20,((parts->currentTime[3] == 0)? "am" : "pm"));
+        lcd.display((void*)(&lcd),lcdCharacters,0,20,((parts.currentTime[3] == 0)? "am" : "pm"));
         */
         
         taskYIELD(); // Allow it to switch to another function
@@ -501,7 +492,7 @@ void readClockTime(void *pvParameters){
    EventBits_t bits;
 
    // Isolated Needed HW
-   // lcd_t lcd = parts->lcd;
+   // lcd_t lcd = parts.lcd;
    char time_str[10];
 
    // Read Clock Time
@@ -515,18 +506,18 @@ void readClockTime(void *pvParameters){
 			ESP_LOGI(TAG, "changeCurrentTime : HardWare + Clock mode are set");
 
 			// Synchronize Variables
-			parts = (parts_t*)pvParameters;
+			
 
 			// Read the Time
-			parts->rtc.readTime(
-				&parts->currentTime[0],
-				&parts->currentTime[1],
-				&parts->currentTime[2],
-				&parts->currentTime[3]
+			parts.rtc.readTime(
+				&parts.currentTime[0],
+				&parts.currentTime[1],
+				&parts.currentTime[2],
+				&parts.currentTime[3]
 			);
 
 			// Trigger Alarm
-			triggerBuzzer(parts->buzzer,parts->currentTime, parts->alarmTime);
+			triggerBuzzer(parts.buzzer,parts.currentTime, parts.alarmTime);
 			
 		}
         else if((bits & EVT_HW_INITIALIZED) == EVT_HW_INITIALIZED){
@@ -575,14 +566,14 @@ void turnOnBuzzer(void *pvParameters){
 			if(powerLevel == LOW || powerLevel == MID || powerLevel == HIGH || powerLevel == MAX){
 				ESP_LOGI(TAG,"Increase Power");
                 count++;
-				parts->buzzer.powerOn(BUZZER_MODE,BUZZER_CHANNEL,(buzzer_power_t)powerLevel);
+				parts.buzzer.powerOn(BUZZER_MODE,BUZZER_CHANNEL,(buzzer_power_t)powerLevel);
 				vTaskDelay(200/portTICK_PERIOD_MS);
 			}
 		}
 		else if((bits & (EVT_HW_INITIALIZED|EVT_CLOCK_MODE|EVT_BUZZER_SNOOZED)) == (EVT_HW_INITIALIZED|EVT_CLOCK_MODE|EVT_BUZZER_SNOOZED)){
 			ESP_LOGI(TAG, "turnOnBuzzer : HardWare + Clock mode + Buzzer Snoozed set");
 
-			parts->buzzer.powerOn(BUZZER_MODE,BUZZER_CHANNEL,NONE);
+			parts.buzzer.powerOn(BUZZER_MODE,BUZZER_CHANNEL,NONE);
 			vTaskDelay(200/portTICK_PERIOD_MS);
 		}
 		else if((bits & (EVT_HW_INITIALIZED|EVT_CLOCK_MODE)) == (EVT_HW_INITIALIZED|EVT_CLOCK_MODE)){
@@ -635,38 +626,38 @@ void setupWifi(void *pvParameters){
             // Configure Each Wifi Part
             if(strcmp(WifiSSID,ssid) != 0){
                 ESP_LOGI(TAG, "SSID = %s",WifiSSID);
-                parts->ssid = ssid;
+                parts.ssid = ssid;
                 wifiConfigured[0] = 1;
             }
 
             if(strcmp(WifiPassword,pass) != 0){
                 ESP_LOGI(TAG, "Password = %s",WifiPassword);
-                parts->pass = pass;
+                parts.pass = pass;
                 wifiConfigured[1] = 1;
             }
 
             if(strcmp(WifiSku,sku) != 0){
                 ESP_LOGI(TAG, "SKU = %s",WifiSku);
-                parts->sku = sku;
+                parts.sku = sku;
                 wifiConfigured[2] = 1;
             }
 
             if(strcmp(WifiMacAddress,device) != 0){
                 ESP_LOGI(TAG, "Wifi Mac Address = %s",WifiMacAddress);
-                parts->device = device;
+                parts.device = device;
                 wifiConfigured[3] = 1;
             }
 
             if(strcmp(WifiApiKey,ssid) != 0){
                 ESP_LOGI(TAG, "API Key = %s",WifiApiKey);
-                parts->key = key;
+                parts.key = key;
                 wifiConfigured[4] = 1;
             }
 
             // Check If Wifi is Set Configured
             if(wifiConfigured[0] == 1 && wifiConfigured[1] == 1 && wifiConfigured[2] == 1 && wifiConfigured[3] == 1 && wifiConfigured[4] == 1){
                 ESP_LOGI(TAG,"setupWifi BLE has received WIFI Data");
-                parts->bulbmode = 0;
+                parts.bulbmode = 0;
                 xEventGroupSetBits(eventGroup,EVT_BLE_RECEIVED_WIFI_DATA);
                 vTaskDelay(1000);
             }
@@ -697,7 +688,7 @@ void startWifi(void *pvParameters){
 
             // Start Wifi
             wifi_init();
-            wifi_configuration(parts->ssid,parts->pass);
+            wifi_configuration(parts.ssid,parts.pass);
             wifi_start();
             xEventGroupClearBits(eventGroup,EVT_BLE_RECEIVED_WIFI_DATA);
             break;
@@ -725,9 +716,9 @@ void controlBulb(void *pvParameters){
         if(bits == EVT_BUZZER_ON){
             ESP_LOGI(TAG, "controlBulb : Buzzer On is set");
          
-            switch (*(parts->bulbmode)){
+            switch (*(parts.bulbmode)){
                 case BULB_CONFIG:
-                    bconfig(parts->sku,parts->device,parts->key);
+                    bconfig(parts.sku,parts.device,parts.key);
                     vTaskDelay(100);
                     break;
                 case BULB_ON:
