@@ -248,7 +248,7 @@ void app_main(void){
     ESP_LOGI(TAG,"Initialize Time");
     for(int i=0; i<3; i++){
         parts.currentTime[i] = (i==0)?12:0;
-        parts.alarmTime[i] = (i==0)?8:0;
+        parts.alarmTime[i] = (i==0)?12:0;
     }
     // 3) Store Time
     for(int i=0;i<4;i++){
@@ -256,6 +256,9 @@ void app_main(void){
     }
     storedWatchData[4] = parts.currentTime[0];
     storedWatchData[5] = parts.currentTime[1];
+
+    // Set Alarm Time to 12:01
+    parts.alarmTime[1] = 1;
 
     // Control Task
     ControlTask();
@@ -270,6 +273,13 @@ void ControlTask(){
     xEventGroupClearBits(eventGroup,EVT_TIME_MODE|EVT_ALARM_MODE|EVT_CLOCK_MODE);
 
     /* Create All Tasks */
+    // Configure Wifi & BLE
+    xTaskCreatePinnedToCore(startBLE,"Start the BLE",CONFIG_SYSTEM_EVENT_TASK_STACK_SIZE,NULL,5,&startBLEHandle,0);
+    xTaskCreate(setupWifi,"Configure Wifi",CONFIG_SYSTEM_EVENT_TASK_STACK_SIZE,NULL,4,&setupWifiHandle);
+    xTaskCreatePinnedToCore(startWifi,"Start the Wifi",CONFIG_SYSTEM_EVENT_TASK_STACK_SIZE,NULL,3,&startWifiHandle,1);
+    xTaskCreate(controlBulb,"Control the LightBulb",CONFIG_SYSTEM_EVENT_TASK_STACK_SIZE,NULL,1,&controlBulbHandle);
+    
+    
     // Initalize All HW
     xTaskCreate(initializeAllHWTask,"HardWare Initialization", CONFIG_SYSTEM_EVENT_TASK_STACK_SIZE,NULL, 4, &initializeAllHWHandle);
     // Create All Functionality tasks
@@ -379,9 +389,6 @@ void changeCurrentTime(void *pvParameters){
        }
 	   else if ((bits & EVT_HW_INITIALIZED) == EVT_HW_INITIALIZED){
 			ESP_LOGI(TAG, "changeCurrentTime : HardWare only is set");
-
-            // Synchronize Variables
-			
 
 			// Display Time
 			ESP_LOGI(
@@ -523,7 +530,7 @@ void readClockTime(void *pvParameters){
 		}
         else if((bits & EVT_HW_INITIALIZED) == EVT_HW_INITIALIZED){
             ESP_LOGI(TAG, "changeCurrentTime : HardWare is set");
-            vTaskDelay(100);
+            vTaskDelay(100/portTICK_PERIOD_MS);;
         }
         taskYIELD();
 	}
@@ -660,7 +667,7 @@ void setupWifi(void *pvParameters){
                 ESP_LOGI(TAG,"setupWifi BLE has received WIFI Data");
                 parts.bulbmode = 0;
                 xEventGroupSetBits(eventGroup,EVT_BLE_RECEIVED_WIFI_DATA);
-                vTaskDelay(1000);
+                vTaskDelay(1000/portTICK_PERIOD_MS);;
             }
         }
         else{
@@ -691,13 +698,14 @@ void startWifi(void *pvParameters){
             wifi_init();
             wifi_configuration(parts.ssid,parts.pass);
             wifi_start();
+            vTaskDelay(1000/portTICK_PERIOD_MS); //gives enough time for the wifi to connect to the network
             xEventGroupClearBits(eventGroup,EVT_BLE_RECEIVED_WIFI_DATA);
             break;
         }
         else{
             ESP_LOGI(TAG, "startWifi :  BLE to receive data is not set");
         }
-        vTaskDelay(100);
+        vTaskDelay(100/portTICK_PERIOD_MS);
     }
 
     vTaskDelete(startWifiHandle);
@@ -720,20 +728,20 @@ void controlBulb(void *pvParameters){
             switch (*(parts.bulbmode)){
                 case BULB_CONFIG:
                     bconfig(parts.sku,parts.device,parts.key);
-                    vTaskDelay(100);
+                    vTaskDelay(100/portTICK_PERIOD_MS);;
                     break;
                 case BULB_ON:
                     ESP_LOGI(TAG,"Turn light on");
                     sendRequest(1);
-                    vTaskDelay(100);
+                    vTaskDelay(100/portTICK_PERIOD_MS);;
                     break;
                 case BULB_OFF:
                     ESP_LOGI(TAG,"Turn light off");
                     sendRequest(0);
-                    vTaskDelay(100);
+                    vTaskDelay(100/portTICK_PERIOD_MS);;
                     break;
                 default:
-                    vTaskDelay(100);
+                    vTaskDelay(100/portTICK_PERIOD_MS);;
                     break;
             }
         }
