@@ -311,7 +311,8 @@ void initializeAllHWTask(void *pvParameters){
     xEventGroupSetBits(eventGroup,EVT_WIFI_CONFIG);
 
     // Yield 
-    taskYIELD();
+    //taskYIELD();
+    vTaskDelete(initializeAllHWHandle);
 }
 
 void checkControlMode(void *pvParameters){
