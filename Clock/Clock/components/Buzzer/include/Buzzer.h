@@ -3,11 +3,15 @@
 
 
 /* Drivers */
+#include "freertos/FreeRTOS.h"
 #include <driver/gpio.h>
 #include <driver/ledc.h>
 
 /* C Library */
 #include <stdio.h>
+
+/* Debug Logs */
+#include "esp_log.h"
 
 /* Definitions */
 // PWM
@@ -35,17 +39,13 @@ typedef struct buzzer_t {
    ledc_channel_config_t buzzerChannelConfig; // PWM Channel
 
    // Task
-   void *(*powerOn)(ledc_mode_t,ledc_channel_t, buzzer_power_t);
+   void (*powerOn)(ledc_mode_t,ledc_channel_t, buzzer_power_t);
 
 } buzzer_t;
 
 /* Functions */
 extern void initializeBuzzer(buzzer_t *buzzer);
 
-extern esp_err_t configureBuzzerTimer(buzzer_t *buzzer);
-
-extern esp_err_t configureBuzzerChannel(buzzer_t *buzzer);
-
-extern void *setPowerOn(ledc_mode_t mode,ledc_channel_t channel, buzzer_power_t buzzerPower);
+extern void setPowerOn(ledc_mode_t mode,ledc_channel_t channel, buzzer_power_t buzzerPower);
 
 #endif
