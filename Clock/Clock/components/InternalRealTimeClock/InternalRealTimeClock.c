@@ -2,6 +2,9 @@
 
 
 void initializeRTC(internal_real_time_clock_t *rtc){
+    rtc->writeTime = writeTime;
+    rtc->readTime = readTime;
+    
     writeTime(12,0,0,0);
 }
 
