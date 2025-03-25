@@ -23,6 +23,7 @@ public class ConnectToDevice extends AppCompatActivity {
     private EditText deviceAddressInput;
     private TextView statusTextView;
     private BLEManager bleManager;
+    private DatabaseHelper dbHelper;
     private BluetoothAdapter bluetoothAdapter;
     private static final int REQUEST_BLUETOOTH_PERMISSIONS = 1;
     private static final int REQUEST_ENABLE_BLUETOOTH = 2;
@@ -47,7 +48,7 @@ public class ConnectToDevice extends AppCompatActivity {
 
         bleManager = BLEManager.getInstance(this);
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-
+        dbHelper = new DatabaseHelper(this);
         // Restore the saved status message
         String savedStatus = getSharedPreferences("AppPrefs", MODE_PRIVATE)
                 .getString("status_message", "Status: Waiting");
@@ -76,6 +77,10 @@ public class ConnectToDevice extends AppCompatActivity {
             @Override
             public boolean onConnected() {
                 updateStatus("Connected to ESP32!");
+                dbHelper.clearHeartbeatTable();
+                Intent intent = new Intent(ConnectToDevice.this, HomePage.class);
+                intent.putExtra("UPDATE_BEDTIME", true); // Signal HomePage to update bedtime
+                startActivity(intent);
                 return true;
             }
 

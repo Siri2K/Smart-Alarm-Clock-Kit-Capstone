@@ -36,7 +36,7 @@ public class HomePage extends AppCompatActivity {
     private DatabaseHelper dbHelper;
     private TextView optimalBedTime;
     private LineChart lineChart;
-    private boolean useDummyData = true; // Set to false when using actual data
+    private boolean useDummyData = false; // Set to false when using actual data
 
     @SuppressLint("SetTextI18n")
     @Override
@@ -55,13 +55,18 @@ public class HomePage extends AppCompatActivity {
 
         dbHelper = new DatabaseHelper(this);
         userId = dbHelper.getUserIdByUsername(username);
-//        dbHelper.insertHeartbeatData(1, 72, 1, 30);
-//        dbHelper.insertHeartbeatData(1, 80, 1, 30);
-//        dbHelper.insertHeartbeatData(1, 65, 1, 30);
-//        dbHelper.insertHeartbeatData(1, 85, 2, 30);
-//        dbHelper.insertHeartbeatData(1, 72.5, 2, 30);
-//        dbHelper.insertHeartbeatData(1, 70, 3, 30);
-//        dbHelper.insertHeartbeatData(1, 95, 3, 30);
+
+        if (getIntent().getBooleanExtra("UPDATE_BEDTIME", false)) {
+            saveAndSendBedtime();
+        }
+        dbHelper.insertHeartbeatData(1, 72, 10, 30, 0);
+        dbHelper.insertHeartbeatData(1, 80, 11, 0, 2);
+        dbHelper.insertHeartbeatData(1, 65, 11, 30, 3);
+        dbHelper.insertHeartbeatData(1, 85, 0, 30, 1);
+        dbHelper.insertHeartbeatData(1, 72.5, 1, 0, 2 );
+        dbHelper.insertHeartbeatData(1, 70, 3, 0, 3);
+        dbHelper.insertHeartbeatData(1, 95, 4, 0, 2);
+        dbHelper.insertHeartbeatData(1, 85, 6, 30, 0);
         LineChart sleepChart = findViewById(R.id.sleepChart);
         List<SleepStageEntry> dummySleepStages = Arrays.asList(
                 new SleepStageEntry(0, 22 * 60 + 30),  // 22:30 - Wake
@@ -110,7 +115,16 @@ public class HomePage extends AppCompatActivity {
             lineChart.setData(lineData);
 
             XAxis xAxis = lineChart.getXAxis();
-            xAxis.setValueFormatter(new IndexAxisValueFormatter(hourLabels));
+            xAxis.setValueFormatter(new ValueFormatter() {
+                @Override
+                public String getFormattedValue(float value) {
+                    int hour = (int) value;
+                    Calendar calendar = Calendar.getInstance();
+                    calendar.set(Calendar.HOUR_OF_DAY, hour);
+                    calendar.set(Calendar.MINUTE, 0);
+                    return new SimpleDateFormat("HH:mm", Locale.getDefault()).format(calendar.getTime());
+                }
+            });
             xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
             xAxis.setGranularity(1f);
             xAxis.setLabelCount(hourLabels.size(), true);
@@ -260,7 +274,11 @@ public class HomePage extends AppCompatActivity {
             int avgHeartRate = (int) Math.round(values.stream().mapToDouble(Double::doubleValue).average().orElse(0.0));
 
             entries.add(new Entry(hour, avgHeartRate));
-            hourLabels.add(String.valueOf(hour));
+            Calendar calendar = Calendar.getInstance();
+            calendar.set(Calendar.HOUR_OF_DAY, hour);
+            calendar.set(Calendar.MINUTE, 0);
+            SimpleDateFormat sdf = new SimpleDateFormat("HH:mm", Locale.getDefault());
+            hourLabels.add(sdf.format(calendar.getTime()));
         }
 
         return entries;
@@ -292,7 +310,7 @@ public class HomePage extends AppCompatActivity {
         // Retrieve the updated average bedtime
         String averageBedtime = dbHelper.getAverageBedtime(userId);
 
-        SharedPreferences prefs = getSharedPreferences("MyPreferences", MODE_PRIVATE);
+        SharedPreferences prefs = this.getSharedPreferences("MyPreferences", MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
         editor.putString("AVERAGE_BEDTIME", averageBedtime);
         editor.apply();
@@ -300,12 +318,15 @@ public class HomePage extends AppCompatActivity {
         // Debugging log
         Log.d("Bedtime", "Optimal bedtime saved: " + optimalBedtime);
     }
-    private void updateSleepUI() {
-        SharedPreferences prefs = getSharedPreferences("MyPreferences", MODE_PRIVATE);
+    public void updateSleepUI() {
+        SharedPreferences prefs = this.getSharedPreferences("MyPreferences", MODE_PRIVATE);
         String averageBedtime = prefs.getString("AVERAGE_BEDTIME", "No bedtime recorded");
 
         optimalBedTime.setText(averageBedtime);
         Log.d("HomePage", "Displaying bedtime: " + averageBedtime);
     }
-
+    protected void onResume() {
+        super.onResume();
+        updateSleepUI();
+    }
 }

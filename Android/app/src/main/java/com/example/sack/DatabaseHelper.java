@@ -21,7 +21,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
 
     private static final String DATABASE_NAME = "SACK_Database";
-    private static final int DATABASE_VERSION = 7;
+    private static final int DATABASE_VERSION = 8;
 
     // Table Names
     private static final String TABLE_HEARTBEAT = "Heartbeat_sensor";
@@ -548,13 +548,14 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         }
     }
 
-    public void insertHeartbeatData(int userId, double sensorData, int hour, int minute) {
+    public void insertHeartbeatData(int userId, double sensorData, int hour, int minute, int sleepStage) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put("user_id", userId);
         values.put("sensor_data", sensorData);
         values.put("hour", hour);
         values.put("minute", minute);
+        values.put("sleep_stage", sleepStage);
 
         long result = db.insert("Heartbeat_sensor", null, values);
 
@@ -567,6 +568,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
         db.close();
     }
-
+    public void clearHeartbeatTable() {
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.execSQL("DELETE FROM Heartbeat_sensor"); // Replace with your actual table name
+        db.close();
+    }
 }
 
