@@ -16,6 +16,7 @@ esp_bd_addr_t connectedDeviceAddress[2];
 int8_t num_conns = 0;
 
 uint8_t storedWatchData[6];
+uint8_t sleepState = 1;
 
 // Setup Code
 char storedPhoneData0[64]; 
@@ -230,11 +231,13 @@ static void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_
             break;
         }       
         case ESP_GATTS_WRITE_EVT: {
+            /*
             if(param->write.len == sizeof(storedWatchData)/sizeof(storedWatchData[0])-2){
                 for (int i = 0; i < param->write.len; i++) {
                     storedWatchData[i] = param->write.value[i];
                 }
             }
+            */
 
             if(param->write.conn_id == ((connectedDeviceAddress[0] == WATCH_MAC)?connection_ids[0]:connection_ids[1])){
                 
@@ -328,8 +331,8 @@ static void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_
             if(sameAddress && num_conns == 2){
                 esp_err_t dataSent = ESP_OK; 
 
-                char sentData[15];
-                snprintf(sentData,sizeof(sentData),"%02d,%02d,%02d",storedWatchData[0],storedWatchData[4],storedWatchData[5]);
+                char sentData[18];
+                snprintf(sentData,sizeof(sentData),"%02d,%02d,%02d,%d",storedWatchData[0],storedWatchData[4],storedWatchData[5],sleepState);
                 
                 // Check Data Sent
                 ESP_LOGI(TAG, "Connection ID: [%d,%d]", connection_ids[0],connection_ids[1]);
