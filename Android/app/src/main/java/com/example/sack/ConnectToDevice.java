@@ -53,7 +53,7 @@ public class ConnectToDevice extends AppCompatActivity {
         String savedStatus = getSharedPreferences("AppPrefs", MODE_PRIVATE)
                 .getString("status_message", "Status: Waiting");
         statusTextView.setText(savedStatus);
-
+        dbHelper.clearHeartbeatTable();
         connectButton.setOnClickListener(v -> {
             String macAddress = deviceAddressInput.getText().toString().trim();
 

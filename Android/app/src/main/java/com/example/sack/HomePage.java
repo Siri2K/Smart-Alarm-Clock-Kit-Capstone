@@ -59,9 +59,9 @@ public class HomePage extends AppCompatActivity {
         if (getIntent().getBooleanExtra("UPDATE_BEDTIME", false)) {
             saveAndSendBedtime();
         }
-        dbHelper.insertHeartbeatData(1, 72, 10, 30, 0);
-        dbHelper.insertHeartbeatData(1, 80, 11, 0, 2);
-        dbHelper.insertHeartbeatData(1, 65, 11, 30, 3);
+        dbHelper.insertHeartbeatData(1, 72, 22, 30, 0);
+        dbHelper.insertHeartbeatData(1, 80, 23, 0, 2);
+        dbHelper.insertHeartbeatData(1, 65, 23, 30, 3);
         dbHelper.insertHeartbeatData(1, 85, 0, 30, 1);
         dbHelper.insertHeartbeatData(1, 72.5, 1, 0, 2 );
         dbHelper.insertHeartbeatData(1, 70, 3, 0, 3);
@@ -116,20 +116,23 @@ public class HomePage extends AppCompatActivity {
 
             XAxis xAxis = lineChart.getXAxis();
             xAxis.setValueFormatter(new ValueFormatter() {
+                private final SimpleDateFormat sdf = new SimpleDateFormat("HH:mm", Locale.getDefault());
+
                 @Override
                 public String getFormattedValue(float value) {
-                    int hour = (int) value;
+                    int hour = ((int) value) % 24; // 24 = 00:00, 25 = 01:00, etc.
                     Calendar calendar = Calendar.getInstance();
                     calendar.set(Calendar.HOUR_OF_DAY, hour);
                     calendar.set(Calendar.MINUTE, 0);
-                    return new SimpleDateFormat("HH:mm", Locale.getDefault()).format(calendar.getTime());
+                    return sdf.format(calendar.getTime());
                 }
             });
             xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
             xAxis.setGranularity(1f);
             xAxis.setLabelCount(hourLabels.size(), true);
             xAxis.setTextColor(Color.parseColor("#FF6B6B"));
-
+            xAxis.setAxisMinimum(20f);  // 22:00
+            xAxis.setAxisMaximum(35f);
             // Customize Y-Axis
             YAxis yAxisLeft = lineChart.getAxisLeft();
             yAxisLeft.setTextColor(Color.parseColor("#FF6B6B"));
@@ -272,8 +275,13 @@ public class HomePage extends AppCompatActivity {
             int hour = entry.getKey();
             List<Double> values = entry.getValue();
             int avgHeartRate = (int) Math.round(values.stream().mapToDouble(Double::doubleValue).average().orElse(0.0));
-
-            entries.add(new Entry(hour, avgHeartRate));
+            int adjustedHour;
+            if (hour >= 23) {
+                adjustedHour = hour; // 22–23 remain as-is
+            } else {
+                adjustedHour = hour + 24; // 0–6 become 24–30
+            }
+            entries.add(new Entry(adjustedHour, avgHeartRate));
             Calendar calendar = Calendar.getInstance();
             calendar.set(Calendar.HOUR_OF_DAY, hour);
             calendar.set(Calendar.MINUTE, 0);
