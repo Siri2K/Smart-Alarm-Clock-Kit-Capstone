@@ -143,24 +143,26 @@ public class BLEManager {
                     String receivedData = new String(rawData, StandardCharsets.UTF_8).trim();
                     Log.d(TAG, "Data received from ESP: " + receivedData);
 
-                    if (receivedData.matches("\\d{1,3},\\d{1,2},\\d{1,2}")) { // Fix Regex
+                    if (receivedData.matches("\\d{1,3},\\d{1,2},\\d{1,2},\\d")) { // Fix Regex
                         String[] parts = receivedData.split(",");
-                        if (parts.length == 3) { // Expected format: "BPM,Hour,Minute"
+                        if (parts.length == 4) { // Expected format: "BPM,Hour,Minute"
                             try {
                                 int bpm = Integer.parseInt(parts[0]);
                                 int hour = Integer.parseInt(parts[1]);
                                 int minute = Integer.parseInt(parts[2]);
+                                int sleepStage = Integer.parseInt(parts[3]); // 0 = Wake, 1 = Light, 2 =Deep , 3 =REM
 
-                                Log.d(TAG, "Parsed Data - BPM: " + bpm + ", Hour: " + hour + ", Minute: " + minute);
+                                Log.d(TAG, "Parsed Data - BPM: " + bpm + ", Hour: " + hour + ", Minute: " + minute + ", SleepStage: " + sleepStage);
+                                float x = hour * 60f + minute;
 
                                 // Save BPM & timestamp to database
 
 
 
                                 if (userId != -1) {
-                                    long result = dbHelper.insertSensorData(userId, bpm, hour, minute);
+                                    long result = dbHelper.insertSensorData(userId, bpm, hour, minute, sleepStage);
                                     if (result != -1) {
-                                        Log.d(TAG, "BPM saved to database: " + bpm + " at " + hour + ":" + minute);
+                                        Log.d(TAG, "BPM saved to database: " + bpm + " at " + hour + ":" + minute + sleepStage);
                                     } else {
                                         Log.e(TAG, "BPM insert failed.");
                                     }

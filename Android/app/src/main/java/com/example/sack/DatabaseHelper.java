@@ -46,6 +46,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String COLUMN_SENSOR_DATA = "sensor_data";
     private static final String COLUMN_HOUR = "hour";
     private static final String COLUMN_MINUTE = "minute";
+    private static final String COLUMN_SLEEP_STAGE = "sleep_stage";
 
     // Alarms Table Columns
     private static final String COLUMN_ALARM_ID = "alarm_id";
@@ -93,7 +94,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                     COLUMN_USER_REF_ID + " INTEGER NOT NULL, " +
                     COLUMN_SENSOR_DATA + " REAL, " +
                     COLUMN_HOUR + " INTEGER NOT NULL, " +  // New column for Hour
-                    COLUMN_MINUTE + " INTEGER NOT NULL, " + // New column for Minute
+                    COLUMN_MINUTE + " INTEGER NOT NULL, " +
+                    COLUMN_SLEEP_STAGE + " INTEGER, " +// New column for Minute
                     "FOREIGN KEY (" + COLUMN_USER_REF_ID + ") REFERENCES " + TABLE_USERS + "(" + COLUMN_USER_ID + ") ON DELETE CASCADE);";
 
     // Alarms Table Creation
@@ -187,18 +189,19 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     // Insert Sensor Data
-    public long insertSensorData(int userId, int bpm, int hour, int minute) {
+    public long insertSensorData(int userId, int bpm, int hour, int minute, int sleepStage) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(COLUMN_USER_REF_ID, userId);
         values.put(COLUMN_SENSOR_DATA, bpm);
         values.put(COLUMN_HOUR, hour);
         values.put(COLUMN_MINUTE, minute);
+        values.put(COLUMN_SLEEP_STAGE, sleepStage);
 
         long result = db.insert(TABLE_HEARTBEAT, null, values);
 
         if (result != -1) {
-            Log.d("DatabaseHelper", "BPM inserted successfully: " + bpm + " at " + hour + ":" + minute);
+            Log.d("DatabaseHelper", "BPM inserted successfully: " + bpm + " at " + hour + ":" + minute + " SleepStage: " + sleepStage);
         } else {
             Log.e("DatabaseHelper", "Failed to insert BPM.");
         }
@@ -213,7 +216,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     // Get Sensor Data for a User
     public Cursor getSensorDataByUserId(int userId) {
         SQLiteDatabase db = this.getReadableDatabase();
-        return db.rawQuery("SELECT sensor_data, hour, minute FROM " + TABLE_HEARTBEAT +
+        return db.rawQuery("SELECT sensor_data, hour, minute, sleep_stage FROM " + TABLE_HEARTBEAT +
                 " WHERE " + COLUMN_USER_REF_ID + "=?", new String[]{String.valueOf(userId)});
     }
 

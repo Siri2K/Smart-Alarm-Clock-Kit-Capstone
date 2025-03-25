@@ -16,11 +16,15 @@ import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
+import com.github.mikephil.charting.formatter.ValueFormatter;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.github.mikephil.charting.charts.LineChart;
 
 import java.sql.Date;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -58,6 +62,19 @@ public class HomePage extends AppCompatActivity {
 //        dbHelper.insertHeartbeatData(1, 72.5, 2, 30);
 //        dbHelper.insertHeartbeatData(1, 70, 3, 30);
 //        dbHelper.insertHeartbeatData(1, 95, 3, 30);
+        LineChart sleepChart = findViewById(R.id.sleepChart);
+        List<SleepStageEntry> dummySleepStages = Arrays.asList(
+                new SleepStageEntry(0, 22 * 60 + 30),  // 22:30 - Wake
+                new SleepStageEntry(2, 23 * 60 + 0),   // 23:00 - Light
+                new SleepStageEntry(3, 23 * 60 + 30),  // 23:30 - Deep
+                new SleepStageEntry(1, 0 * 60 + 30),   // 00:30 - REM
+                new SleepStageEntry(2, 1 * 60 + 0),    // 01:00 - Light
+                new SleepStageEntry(3, 2 * 60 + 0),    // 02:00 - Deep
+                new SleepStageEntry(1, 3 * 60 + 0),    // 03:00 - REM
+                new SleepStageEntry(2, 4 * 60 + 0),    // 04:00 - Light
+                new SleepStageEntry(0, 6 * 60 + 30)    // 06:30 - Wake
+        );
+        displaySleepStages(dummySleepStages, sleepChart);
 
 
         if (username != null && !username.isEmpty()) {
@@ -108,7 +125,97 @@ public class HomePage extends AppCompatActivity {
             lineChart.invalidate();
         }
     }
+    public static class SleepStageEntry {
+        public int stage;
+        public float timeInMinutes;
 
+        public SleepStageEntry(int stage, float timeInMinutes) {
+            this.stage = stage;
+            this.timeInMinutes = timeInMinutes;
+        }
+    }
+
+    private void displaySleepStages(List<SleepStageEntry> stages, LineChart sleepChart) {
+        List<Entry> entries = new ArrayList<>();
+
+        for (int i = 0; i < stages.size(); i++) {
+            SleepStageEntry current = stages.get(i);
+            int stageValue = current.stage;
+
+            float xStart = current.timeInMinutes;
+            if (xStart < 1320) xStart += 1440; // shift early morning to next day
+            xStart -= 1320; // normalize 22:00 to 0
+
+            float xEnd;
+            if (i + 1 < stages.size()) {
+                xEnd = stages.get(i + 1).timeInMinutes;
+                if (xEnd < 1320) xEnd += 1440;
+                xEnd -= 1320;
+            } else {
+                xEnd = xStart + 30;
+            }
+
+            entries.add(new Entry(xStart, stageValue));
+            entries.add(new Entry(xEnd, stageValue));
+        }
+
+        LineDataSet dataSet = new LineDataSet(entries, "Sleep Cycle");
+        dataSet.setDrawValues(false);
+        dataSet.setDrawCircles(false);
+        dataSet.setColor(Color.CYAN);
+        dataSet.setLineWidth(2f);
+
+        LineData lineData = new LineData(dataSet);
+        sleepChart.setData(lineData);
+
+        XAxis x_axis = sleepChart.getXAxis();
+        x_axis.setAxisMinimum(0);       // 22:00
+        x_axis.setAxisMaximum(540);     // 07:00 (540 minutes after 22:00)
+        x_axis.setTextColor(Color.parseColor("#FF6B6B"));
+        x_axis.setGranularity(60f);
+        x_axis.setLabelCount(8, true);
+
+        // Format X-axis to HH:mm
+        x_axis.setValueFormatter(new ValueFormatter() {
+            private final SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
+
+            @Override
+            public String getFormattedValue(float value) {
+                Calendar calendar = Calendar.getInstance();
+                calendar.set(Calendar.HOUR_OF_DAY, 22);
+                calendar.set(Calendar.MINUTE, 0);
+                calendar.set(Calendar.SECOND, 0);
+                calendar.set(Calendar.MILLISECOND, 0);
+
+                // Add the offset (in minutes) from 22:00
+                calendar.add(Calendar.MINUTE, (int) value);
+                return timeFormat.format(calendar.getTime());
+            }
+        });
+
+
+        // Customize Y-axis labels to show text instead of numbers
+        YAxis yAxis = sleepChart.getAxisLeft();
+        yAxis.setGranularity(1f);
+        yAxis.setTextColor(Color.parseColor("#FF6B6B"));
+        yAxis.setValueFormatter(new ValueFormatter() {
+            @Override
+            public String getFormattedValue(float value) {
+                switch ((int) value) {
+                    case 0: return "Wake";
+                    case 1: return "Light";
+                    case 2: return "Deep";
+                    case 3: return "REM";
+                    default: return "";
+                }
+            }
+        });
+
+        sleepChart.getAxisRight().setEnabled(false);
+        sleepChart.getXAxis().setPosition(XAxis.XAxisPosition.BOTTOM);
+        sleepChart.getDescription().setEnabled(false);
+        sleepChart.invalidate(); // Refresh chart
+    }
     // Generate Dummy Data for Testing
     private ArrayList<Entry> generateDummyData(ArrayList<String> hourLabels) {
         ArrayList<Entry> dummyEntries = new ArrayList<>();
