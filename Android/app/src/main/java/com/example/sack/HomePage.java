@@ -38,6 +38,7 @@ public class HomePage extends AppCompatActivity {
     private LineChart lineChart;
     private boolean useDummyData = false; // Set to false when using actual data
 
+
     @SuppressLint("SetTextI18n")
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -68,18 +69,7 @@ public class HomePage extends AppCompatActivity {
         dbHelper.insertHeartbeatData(1, 95, 4, 0, 2);
         dbHelper.insertHeartbeatData(1, 85, 6, 30, 0);
         LineChart sleepChart = findViewById(R.id.sleepChart);
-        List<SleepStageEntry> dummySleepStages = Arrays.asList(
-                new SleepStageEntry(0, 22 * 60 + 30),  // 22:30 - Wake
-                new SleepStageEntry(2, 23 * 60 + 0),   // 23:00 - Light
-                new SleepStageEntry(3, 23 * 60 + 30),  // 23:30 - Deep
-                new SleepStageEntry(1, 0 * 60 + 30),   // 00:30 - REM
-                new SleepStageEntry(2, 1 * 60 + 0),    // 01:00 - Light
-                new SleepStageEntry(3, 2 * 60 + 0),    // 02:00 - Deep
-                new SleepStageEntry(1, 3 * 60 + 0),    // 03:00 - REM
-                new SleepStageEntry(2, 4 * 60 + 0),    // 04:00 - Light
-                new SleepStageEntry(0, 6 * 60 + 30)    // 06:30 - Wake
-        );
-        displaySleepStages(dummySleepStages, sleepChart);
+        displaySleepStages(sleepChart);
 
 
         if (username != null && !username.isEmpty()) {
@@ -87,6 +77,7 @@ public class HomePage extends AppCompatActivity {
 
             if (userId != -1) {
                 displayHeartbeatDataOnGraph(userId);
+                displaySleepStages(sleepChart);
                 //updateSleepUI();
             }
         } else {
@@ -152,22 +143,44 @@ public class HomePage extends AppCompatActivity {
         }
     }
 
-    private void displaySleepStages(List<SleepStageEntry> stages, LineChart sleepChart) {
-        List<Entry> entries = new ArrayList<>();
+    private void displaySleepStages(LineChart sleepChart) {
+        List<SleepStageEntry> stages = new ArrayList<>();
+        int baseSleepTime = 22 * 60;
+        Cursor cursor = dbHelper.getSensorDataByUserId(userId);
 
+        if (cursor != null && cursor.moveToFirst()) {
+            int hourIndex = cursor.getColumnIndex("hour");
+            int minuteIndex = cursor.getColumnIndex("minute");
+            int stageIndex = cursor.getColumnIndex("sleep_stage");
+
+            if (hourIndex != -1 && minuteIndex != -1 && stageIndex != -1) {
+                do {
+                    int hour = cursor.getInt(hourIndex);
+                    int minute = cursor.getInt(minuteIndex);
+                    int stage = cursor.getInt(stageIndex);
+                    float timeInMinutes = hour * 60 + minute;
+
+                    stages.add(new SleepStageEntry(stage, timeInMinutes));
+                } while (cursor.moveToNext());
+            }
+            cursor.close();
+        }
+
+        // Now render the chart using the fetched data
+        List<Entry> entries = new ArrayList<>();
         for (int i = 0; i < stages.size(); i++) {
             SleepStageEntry current = stages.get(i);
             int stageValue = current.stage;
 
             float xStart = current.timeInMinutes;
-            if (xStart < 1320) xStart += 1440; // shift early morning to next day
-            xStart -= 1320; // normalize 22:00 to 0
+            if (xStart < baseSleepTime) xStart += 1440; // shift early AM into next day
+            xStart -= baseSleepTime; // normalize so 22:00 = 0
 
             float xEnd;
             if (i + 1 < stages.size()) {
                 xEnd = stages.get(i + 1).timeInMinutes;
-                if (xEnd < 1320) xEnd += 1440;
-                xEnd -= 1320;
+                if (xEnd < baseSleepTime) xEnd += 1440;
+                xEnd -= baseSleepTime;
             } else {
                 xEnd = xStart + 30;
             }
@@ -186,32 +199,23 @@ public class HomePage extends AppCompatActivity {
         sleepChart.setData(lineData);
 
         XAxis x_axis = sleepChart.getXAxis();
-        x_axis.setAxisMinimum(0);       // 22:00
-        x_axis.setAxisMaximum(540);     // 07:00 (540 minutes after 22:00)
+        x_axis.setAxisMinimum(0);
+        x_axis.setAxisMaximum(1440); // full 24h
         x_axis.setTextColor(Color.parseColor("#FF6B6B"));
         x_axis.setGranularity(60f);
-        x_axis.setLabelCount(8, true);
+        x_axis.setLabelCount(12, true);
 
-        // Format X-axis to HH:mm
         x_axis.setValueFormatter(new ValueFormatter() {
-            private final SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
-
             @Override
             public String getFormattedValue(float value) {
                 Calendar calendar = Calendar.getInstance();
                 calendar.set(Calendar.HOUR_OF_DAY, 22);
                 calendar.set(Calendar.MINUTE, 0);
-                calendar.set(Calendar.SECOND, 0);
-                calendar.set(Calendar.MILLISECOND, 0);
-
-                // Add the offset (in minutes) from 22:00
                 calendar.add(Calendar.MINUTE, (int) value);
-                return timeFormat.format(calendar.getTime());
+                return new SimpleDateFormat("HH:mm", Locale.getDefault()).format(calendar.getTime());
             }
         });
 
-
-        // Customize Y-axis labels to show text instead of numbers
         YAxis yAxis = sleepChart.getAxisLeft();
         yAxis.setGranularity(1f);
         yAxis.setTextColor(Color.parseColor("#FF6B6B"));
@@ -227,6 +231,7 @@ public class HomePage extends AppCompatActivity {
                 }
             }
         });
+
 
         sleepChart.getAxisRight().setEnabled(false);
         sleepChart.getXAxis().setPosition(XAxis.XAxisPosition.BOTTOM);
