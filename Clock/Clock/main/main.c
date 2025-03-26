@@ -281,6 +281,7 @@ void ControlTask(){
 
     /* Create All Tasks */
     // Configure Wifi & BLE
+    xTaskCreatePinnedToCore(setupWifi,"Configure Wifi",8192,NULL,6,&startBLEHandle,0);
     xTaskCreate(setupWifi,"Configure Wifi",CONFIG_SYSTEM_EVENT_TASK_STACK_SIZE,NULL,4,&setupWifiHandle);
     xTaskCreatePinnedToCore(startWifi,"Start the Wifi",CONFIG_SYSTEM_EVENT_TASK_STACK_SIZE,NULL,3,&startWifiHandle,1);
     xTaskCreate(controlBulb,"Control the LightBulb",CONFIG_SYSTEM_EVENT_TASK_STACK_SIZE,NULL,1,&controlBulbHandle);
@@ -603,6 +604,10 @@ void turnOnBuzzer(void *pvParameters){
     vTaskDelete(turnOnBuzzerHandle);
 }
 
+void startBLE(void *pvParameters){
+    configureBLE();
+    while(true);
+}
 
 void setupWifi(void *pvParameters){
     // Components
