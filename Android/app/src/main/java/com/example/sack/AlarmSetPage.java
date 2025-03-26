@@ -36,7 +36,6 @@ public class AlarmSetPage extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.alarmsetpage);
-
         // Initialize UI elements
         tvAlarmDate = findViewById(R.id.tv_alarm_date);
         tvNoAlarms = findViewById(R.id.tv_no_alarms); // Get empty state message
@@ -130,7 +129,7 @@ public class AlarmSetPage extends AppCompatActivity {
         Log.d("DEBUG", "Sending alarms to ESP for user ID: " + userId);
         // Check if BLE is connected
         if (bleManager.isConnected()){
-            bleManager.sendAlarmDataToESP(databaseHelper, userId);
+           bleManager.sendAlarmDataToESP(databaseHelper, userId);
             Toast.makeText(this, "Alarms sent successfully!", Toast.LENGTH_SHORT).show();
         } else {
             Toast.makeText(this, "BLE not ready! Try again after connecting.", Toast.LENGTH_LONG).show();

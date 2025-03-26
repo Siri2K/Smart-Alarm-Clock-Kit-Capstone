@@ -2,14 +2,20 @@ package com.example.sack;
 
 import android.annotation.SuppressLint;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Color;
 import android.icu.text.SimpleDateFormat;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.TextView;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import android.Manifest;
+
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.components.YAxis;
 import com.github.mikephil.charting.data.Entry;
@@ -44,7 +50,6 @@ public class HomePage extends AppCompatActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.homepage);
-
         TextView welcomeMessage = findViewById(R.id.welcomeMessage);
         lineChart = findViewById(R.id.lineChart);
         optimalBedTime = findViewById(R.id.optimalBedtime);
@@ -60,14 +65,14 @@ public class HomePage extends AppCompatActivity {
         if (getIntent().getBooleanExtra("UPDATE_BEDTIME", false)) {
             saveAndSendBedtime();
         }
-        dbHelper.insertHeartbeatData(1, 72, 22, 30, 0);
-        dbHelper.insertHeartbeatData(1, 80, 23, 0, 2);
-        dbHelper.insertHeartbeatData(1, 65, 23, 30, 3);
-        dbHelper.insertHeartbeatData(1, 85, 0, 30, 1);
-        dbHelper.insertHeartbeatData(1, 72.5, 1, 0, 2 );
-        dbHelper.insertHeartbeatData(1, 70, 3, 0, 3);
-        dbHelper.insertHeartbeatData(1, 95, 4, 0, 2);
-        dbHelper.insertHeartbeatData(1, 85, 6, 30, 0);
+//        dbHelper.insertHeartbeatData(1, 72, 22, 30, 0);
+//        dbHelper.insertHeartbeatData(1, 80, 23, 0, 2);
+//        dbHelper.insertHeartbeatData(1, 65, 23, 30, 3);
+//        dbHelper.insertHeartbeatData(1, 85, 0, 30, 1);
+//        dbHelper.insertHeartbeatData(1, 72.5, 1, 0, 2 );
+//        dbHelper.insertHeartbeatData(1, 70, 3, 0, 3);
+//        dbHelper.insertHeartbeatData(1, 95, 4, 0, 2);
+//        dbHelper.insertHeartbeatData(1, 85, 6, 30, 0);
         LineChart sleepChart = findViewById(R.id.sleepChart);
         displaySleepStages(sleepChart);
 
@@ -342,4 +347,5 @@ public class HomePage extends AppCompatActivity {
         super.onResume();
         updateSleepUI();
     }
+
 }

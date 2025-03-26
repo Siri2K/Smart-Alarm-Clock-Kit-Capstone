@@ -4,6 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Calendar;
 import java.util.UUID;
 
+import android.Manifest;
 import android.app.Activity;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGattCallback;
@@ -16,10 +17,15 @@ import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothManager;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.widget.Toast;
+
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 
 public class BLEManager {
@@ -74,13 +80,24 @@ public class BLEManager {
         this.connectionCallback = callback;
     }
     public void connectToDevice(String deviceAddress) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                ContextCompat.checkSelfPermission(context, "android.permission.BLUETOOTH_CONNECT") != PackageManager.PERMISSION_GRANTED) {
+            Log.e(TAG, "BLUETOOTH_CONNECT permission not granted.");
+            return; // or handle gracefully
+        }
         BluetoothDevice device = bluetoothAdapter.getRemoteDevice(deviceAddress);
         bluetoothGatt = device.connectGatt(context, false, gattCallback);
     }
     private final BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                    ContextCompat.checkSelfPermission(context, "android.permission.BLUETOOTH_CONNECT") != PackageManager.PERMISSION_GRANTED) {
+                Log.e(TAG, "BLUETOOTH_CONNECT permission not granted.");
+                return; // or handle gracefully
+            }
             if (newState == BluetoothProfile.STATE_CONNECTED) {
+
                 Log.d(TAG, "Connected to GATT server.");
                 bluetoothGatt.requestMtu(512);
                 bluetoothGatt.discoverServices();
@@ -97,6 +114,11 @@ public class BLEManager {
 
         @Override
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                    ContextCompat.checkSelfPermission(context, "android.permission.BLUETOOTH_CONNECT") != PackageManager.PERMISSION_GRANTED) {
+                Log.e(TAG, "BLUETOOTH_CONNECT permission not granted.");
+                return; // or handle gracefully
+            }
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 BluetoothGattService service = gatt.getService(SERVICE_UUID);
                 if (service != null) {
@@ -199,11 +221,17 @@ public class BLEManager {
         }
     };
     public void sendWifiDataToESP(String ssid, String password, String macAddress, String sku, String apiKey) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                ContextCompat.checkSelfPermission(context, "android.permission.BLUETOOTH_CONNECT") != PackageManager.PERMISSION_GRANTED) {
+            Log.e(TAG, "BLUETOOTH_CONNECT permission not granted.");
+            return; // or handle gracefully
+        }
         if (characteristic == null || bluetoothGatt == null) {
             Log.e(TAG, "BLE characteristic not found.");
             return;
         }
         String dataToSend = ssid + "," + password + "," + macAddress + "," + sku + "," + apiKey;
+        characteristic.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
         characteristic.setValue(dataToSend.getBytes(StandardCharsets.UTF_8));
         bluetoothGatt.writeCharacteristic(characteristic);
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
@@ -214,9 +242,15 @@ public class BLEManager {
     }
 
     public void sendAlarmDataToESP(DatabaseHelper dbHelper, int userId) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                ContextCompat.checkSelfPermission(context, "android.permission.BLUETOOTH_CONNECT") != PackageManager.PERMISSION_GRANTED) {
+            Log.e(TAG, "BLUETOOTH_CONNECT permission not granted.");
+            return; // or handle gracefully
+        }
         String alarmData = dbHelper.getAlarmData(userId);
 
         if (characteristic != null && bluetoothGatt != null) {
+            characteristic.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
             characteristic.setValue(alarmData.getBytes(StandardCharsets.UTF_8));
             bluetoothGatt.writeCharacteristic(characteristic);
             Log.d(TAG, "Sent Alarm Data: " + alarmData);
@@ -226,6 +260,11 @@ public class BLEManager {
     }
 
     public void disconnect() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                ContextCompat.checkSelfPermission(context, "android.permission.BLUETOOTH_CONNECT") != PackageManager.PERMISSION_GRANTED) {
+            Log.e(TAG, "BLUETOOTH_CONNECT permission not granted.");
+            return; // or handle gracefully
+        }
         if (bluetoothGatt != null) {
             bluetoothGatt.disconnect();
             bluetoothGatt.close();
@@ -239,7 +278,7 @@ public class BLEManager {
         }
     }
     public boolean isConnected() {
-        if (bluetoothGatt == null || bluetoothAdapter == null) {
+        if (bluetoothGatt == null || bluetoothAdapter == null && characteristic !=null) {
             Log.e("BLEManager", "BLE connection check failed: bluetoothGatt or bluetoothAdapter is null.");
             return false;
         }
