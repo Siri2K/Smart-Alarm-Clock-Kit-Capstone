@@ -33,6 +33,6 @@
         "typeinfo": "c"
     },
     "idf.flashType": "UART",
-    "idf.portWin": "COM8",
+    "idf.portWin": "COM3",
     "idf.port": "/dev/ttyUSB0"
 }

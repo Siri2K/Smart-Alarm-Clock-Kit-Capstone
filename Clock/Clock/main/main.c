@@ -260,8 +260,11 @@ void app_main(void){
     // Set Alarm Time to 12:01
     parts.alarmTime[1] = 1;
 
+    // Initialize BLE
+    initializeBLE();
+
     // Control Task
-    ControlTask();
+    //ControlTask();
 }
 
 void ControlTask(){   
