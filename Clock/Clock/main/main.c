@@ -35,15 +35,15 @@
 
 // BLE Initialized
 #define EVT_BLE_INITIALIZED     (EventBits_t)(1<<7) // Confirms Bulb is configured
-#define EVT_BLE_RECEIVED_WIFI_DATA    (EventBits_t)(1<<7) // Confirms Bulb is configured
+#define EVT_BLE_RECEIVED_WIFI_DATA     (EventBits_t)(1<<8) // Confirms Bulb is configured
 
 // WIFI
-#define EVT_EVT_WIFI_CONNECTED  (EventBits_t)(1<<8) // Verify Wifi Connection
-#define EVT_WIFI_FAIL       (EventBits_t)(1<<9) // Verify Wifi fail
-#define EVT_WIFI_CONNECT    (EventBits_t)(1<<10) // Wifi connect
-#define EVT_WIFI_CONFIG     (EventBits_t)(1<<11) // Confirms Wifi is Configured
+#define EVT_EVT_WIFI_CONNECTED  (EventBits_t)(1<<9) // Verify Wifi Connection
+#define EVT_WIFI_FAIL       (EventBits_t)(1<<10) // Verify Wifi fail
+#define EVT_WIFI_CONNECT    (EventBits_t)(1<<11) // Wifi connect
+#define EVT_WIFI_CONFIG     (EventBits_t)(1<<12) // Confirms Wifi is Configured
 
-#define EVT_BULB_CONFIG     (EventBits_t)(1<<12) // Confirms Bulb is configured
+#define EVT_BULB_CONFIG     (EventBits_t)(1<<13) // Confirms Bulb is configured
 
 
 /* Global Structures */
@@ -237,10 +237,12 @@ void app_main(void){
     }
     
     // Release Uneccesary Bluetooth emory
+    /*
     status = esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT);
     if(status != ESP_OK){
         ESP_LOGI(TAG,"Bluetooth Memory Not Released");
     }
+    */
 
 
 
@@ -262,9 +264,11 @@ void app_main(void){
 
     // Initialize BLE
     initializeBLE();
+    vTaskDelay(1000/portTICK_PERIOD_MS);
+    
 
     // Control Task
-    //ControlTask();
+    ControlTask();
 }
 
 void ControlTask(){   
@@ -277,7 +281,6 @@ void ControlTask(){
 
     /* Create All Tasks */
     // Configure Wifi & BLE
-    xTaskCreatePinnedToCore(startBLE,"Start the BLE",CONFIG_SYSTEM_EVENT_TASK_STACK_SIZE,NULL,5,&startBLEHandle,0);
     xTaskCreate(setupWifi,"Configure Wifi",CONFIG_SYSTEM_EVENT_TASK_STACK_SIZE,NULL,4,&setupWifiHandle);
     xTaskCreatePinnedToCore(startWifi,"Start the Wifi",CONFIG_SYSTEM_EVENT_TASK_STACK_SIZE,NULL,3,&startWifiHandle,1);
     xTaskCreate(controlBulb,"Control the LightBulb",CONFIG_SYSTEM_EVENT_TASK_STACK_SIZE,NULL,1,&controlBulbHandle);
@@ -292,10 +295,6 @@ void ControlTask(){
     xTaskCreate(changeAlarmTime,"Change Alarm Time", CONFIG_SYSTEM_EVENT_TASK_STACK_SIZE,NULL,2,&changeAlarmTimeHandle);
     xTaskCreate(turnOnBuzzer,"Turn On Buzzer",CONFIG_SYSTEM_EVENT_TASK_STACK_SIZE,NULL,1,&turnOnBuzzerHandle);
 
-    xTaskCreatePinnedToCore(startBLE,"Start the BLE",CONFIG_SYSTEM_EVENT_TASK_STACK_SIZE,NULL,2,&startBLEHandle,0);
-    xTaskCreatePinnedToCore(setupWifi,"Configure Wifi",CONFIG_SYSTEM_EVENT_TASK_STACK_SIZE,NULL,3,&setupWifiHandle,1);
-    xTaskCreatePinnedToCore(startWifi,"Start the Wifi",CONFIG_SYSTEM_EVENT_TASK_STACK_SIZE,NULL,2,&startWifiHandle,1);
-    xTaskCreate(controlBulb,"Control the LightBulb",CONFIG_SYSTEM_EVENT_TASK_STACK_SIZE,NULL,1,&controlBulbHandle);
 
     // Start Schedule
     vTaskStartScheduler();
@@ -604,11 +603,6 @@ void turnOnBuzzer(void *pvParameters){
     vTaskDelete(turnOnBuzzerHandle);
 }
 
-void startBLE(void *pvParameters){
-    initializeBLE();
-    xEventGroupSetBits(eventGroup,EVT_BLE_INITIALIZED);
-    vTaskDelete(startBLEHandle);
-}
 
 void setupWifi(void *pvParameters){
     // Components

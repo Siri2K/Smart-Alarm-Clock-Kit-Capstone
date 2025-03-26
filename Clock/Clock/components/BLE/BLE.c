@@ -143,15 +143,35 @@ void initializeBLE(){
     string_to_uuid(phone_char_uuid_str, PHONE_CHAR_UUID);
     string_to_uuid(watch_char_uuid_str, WATCH_CHAR_UUID);
     print_uuids();
-    
-    //initializeNVS();
-    initializeBLEController();
-    //ESP_ERROR_CHECK(esp_bt_controller_enable(ESP_BT_MODE_BLE));
-    if (esp_bt_controller_enable(ESP_BT_MODE_BLE)) {
-        ESP_LOGE(TAG, "%s enable controller failed\n", __func__);
+
+    // 1) Clear BLE Memory
+    esp_err_t status = ESP_OK;
+    status = esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT);
+    if(status != ESP_OK){
+        if(status == ESP_ERR_INVALID_STATE || ESP_ERR_NOT_FOUND){
+            ESP_LOGE(TAG, "%s Resource Invalid or Not Found, Error : %s", __func__,esp_err_to_name(status));
+        }
+        else{
+            ESP_LOGE(TAG, "%s Failed due to Error : %s", __func__,esp_err_to_name(status));
+        }
         return;
     }
+
+    // 2) Initialize BLE Controller
+    int8_t timeout = 0;
+    initializeBLEController();
+    while (esp_bt_controller_get_status() != ESP_BT_CONTROLLER_STATUS_ENABLED){
+        vTaskDelay(100/portTICK_PERIOD_MS);
+        if(timeout++ > 50){
+            ESP_LOGE(TAG, "%s BLE COntroller Enabele Timeout: ", __func__);
+            return;
+        }
+    }
+    
+    // 3) Intiialize Bluedroid
     initializeBluedroid();
+
+    // 4) Configure
     configureBLE();
 }
 
@@ -468,32 +488,74 @@ void initializeNVS(){
 void initializeBLEController(){
     // Initialize the Bluetooth Controller
     esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
-    
-    if (esp_bt_controller_init(&bt_cfg)) {
-        ESP_LOGE(TAG, "%s initialize controller failed\n", __func__);
+    esp_err_t status = ESP_OK;
+
+    // Intialize Controller
+    if(esp_bt_controller_get_status() == ESP_BT_CONTROLLER_STATUS_IDLE){
+        status = esp_bt_controller_init(&bt_cfg);
+    }    
+    if(status != ESP_OK){
+        if(status == ESP_ERR_INVALID_STATE || ESP_ERR_NOT_FOUND){
+            ESP_LOGE(TAG, "%s esp_bt_controller_init due to Resource Invalid or Not Found, Error : %s", __func__,esp_err_to_name(status));
+        }
+        else{
+            ESP_LOGE(TAG, "%s esp_bt_controller_init Failed due to Error : %s", __func__,esp_err_to_name(status));
+        }
+        return;
+    }
+
+    // Enable Controller
+    if(esp_bt_controller_get_status() == ESP_BT_CONTROLLER_STATUS_INITED){
+        status = esp_bt_controller_enable(ESP_BT_MODE_BLE);
+    }
+    if(status != ESP_OK){
+        if(status == ESP_ERR_INVALID_STATE || ESP_ERR_NOT_FOUND){
+            ESP_LOGE(TAG, "%s esp_bt_controller_enable Resource Invalid or Not Found, Error : %s", __func__,esp_err_to_name(status));
+        }
+        else{
+            ESP_LOGE(TAG, "%s esp_bt_controller_enable Failed due to Error : %s", __func__,esp_err_to_name(status));
+        }
         return;
     }
 }
 
 void initializeBluedroid(){
     // Initialize Bluedroid
-    
-    if (esp_bluedroid_init()) {
-        ESP_LOGE(TAG, "%s init bluetooth failed\n", __func__);
+    esp_err_t status = ESP_OK;
+    status = esp_bluedroid_init();
+    if(status != ESP_OK){
+        ESP_LOGE(TAG, "%s esp_bluedroid_init Failed due to Error : %s", __func__,esp_err_to_name(status));
         return;
     }
-    if (esp_bluedroid_enable()) {
-        ESP_LOGE(TAG, "%s enable bluetooth failed\n", __func__);
+
+    // Enable Controller
+    status = esp_bluedroid_enable();
+    if(status != ESP_OK){
+        ESP_LOGE(TAG, "%s  esp_bluedroid_enable Failed due to Error : %s", __func__,esp_err_to_name(status));
         return;
     }
 }
 
 void configureBLE(){
-    // Register GAP callback to handle advertising events
-    ESP_ERROR_CHECK(esp_ble_gap_register_callback(GAPEventHandler));
+    // Initialize Gatt and Gap
+    esp_err_t status = ESP_OK;
 
-    ESP_LOGI(TAG, "BLE initialized. Configuring advertisement...");
-    ESP_ERROR_CHECK(esp_ble_gatts_register_callback(gatts_event_handler));
+    status = esp_ble_gap_register_callback(GAPEventHandler);
+    if(status != ESP_OK){
+        ESP_LOGE(TAG, "%s GAPEventHandler Failed due to Error : %s", __func__,esp_err_to_name(status));
+        return;
+    }
 
-    ESP_ERROR_CHECK(esp_ble_gatts_app_register(GATTS_APP_ID));
+    status = esp_ble_gatts_register_callback(gatts_event_handler);
+    if(status != ESP_OK){
+        ESP_LOGE(TAG, "%s gatts_event_handler Failed due to Error : %s", __func__,esp_err_to_name(status));
+        return;
+    }
+
+    status = esp_ble_gatts_app_register(GATTS_APP_ID);
+    if(status != ESP_OK){
+        ESP_LOGE(TAG, "%s GATTS_APP_ID Failed due to Error : %s", __func__,esp_err_to_name(status));
+        return;
+    }
+    
 }
