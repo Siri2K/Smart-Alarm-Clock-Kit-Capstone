@@ -93,7 +93,7 @@ public class ConnectToDevice extends AppCompatActivity {
 
         scanQrButton.setOnClickListener(v -> {
             IntentIntegrator integrator = new IntentIntegrator(this);
-            integrator.setOrientationLocked(false);
+            integrator.setOrientationLocked(true);
             integrator.setDesiredBarcodeFormats(Collections.singletonList(BarcodeFormat.QR_CODE.toString()));
             integrator.setPrompt("Scan Clock MAC Address");
             integrator.setBeepEnabled(true);
