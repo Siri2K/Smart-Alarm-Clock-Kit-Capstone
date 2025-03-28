@@ -56,8 +56,8 @@
 
     <EditText
         android:id="@+id/deviceAddressInput"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_width="278dp"
+        android:layout_height="42dp"
         android:layout_marginHorizontal="32dp"
         android:layout_marginTop="8dp"
         android:backgroundTint="#FF6B6B"
@@ -67,9 +67,26 @@
         android:textColorHint="#B0B0B0"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.263"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/deviceImage"
-        app:layout_constraintVertical_bias="0.134" />
+        app:layout_constraintVertical_bias="0.161" />
+
+    <ImageButton
+        android:id="@+id/scanQrButton"
+        android:layout_width="41dp"
+        android:layout_height="43dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Scan QR Code"
+        android:padding="8dp"
+        android:src="@android:drawable/ic_menu_camera"
+        app:layout_constraintBottom_toBottomOf="@+id/deviceAddressInput"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.891"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/deviceAddressInput"
+        app:layout_constraintVertical_bias="0.52"
+        app:tint="#FF6B6B" />
 
     <Button
         android:id="@+id/connectButton"

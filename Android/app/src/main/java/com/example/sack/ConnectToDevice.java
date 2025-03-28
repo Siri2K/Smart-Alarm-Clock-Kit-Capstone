@@ -7,6 +7,7 @@ import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -16,7 +17,11 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.integration.android.IntentIntegrator;
+import com.google.zxing.integration.android.IntentResult;
 
+import java.util.Collections;
 import java.util.regex.Pattern;
 
 public class ConnectToDevice extends AppCompatActivity {
@@ -41,6 +46,7 @@ public class ConnectToDevice extends AppCompatActivity {
     private void setupUI() {
         deviceAddressInput = findViewById(R.id.deviceAddressInput);
         statusTextView = findViewById(R.id.statusTextView);
+        ImageButton scanQrButton = findViewById(R.id.scanQrButton);
         Button connectButton = findViewById(R.id.connectButton);
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
         NavigationBar.setupNavigation(this, bottomNavigationView);
@@ -75,14 +81,23 @@ public class ConnectToDevice extends AppCompatActivity {
         bleManager.setConnectionCallback(new BLEManager.ConnectionCallback() {
             @Override
             public boolean onConnected() {
-                updateStatus("Connected to ESP32!");
+                updateStatus("Connected to Clock!");
                 return true;
             }
 
             @Override
             public void onDisconnected() {
-                updateStatus("Disconnected from ESP32");
+                updateStatus("Disconnected from Clock");
             }
+        });
+
+        scanQrButton.setOnClickListener(v -> {
+            IntentIntegrator integrator = new IntentIntegrator(this);
+            integrator.setDesiredBarcodeFormats(Collections.singletonList(BarcodeFormat.QR_CODE.toString()));
+            integrator.setPrompt("Scan Clock MAC Address");
+            integrator.setBeepEnabled(true);
+            integrator.setBarcodeImageEnabled(true);
+            integrator.initiateScan();
         });
     }
 
@@ -132,5 +147,22 @@ public class ConnectToDevice extends AppCompatActivity {
     private void requestBluetoothEnable() {
         Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
         startActivityForResult(enableBtIntent, REQUEST_ENABLE_BLUETOOTH);
+    }
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        IntentResult result = IntentIntegrator.parseActivityResult(requestCode, resultCode, data);
+        if (result != null) {
+            if (result.getContents() != null) {
+                String scannedMac = result.getContents();
+                if (isValidMacAddress(scannedMac)) {
+                    deviceAddressInput.setText(scannedMac);
+                    Toast.makeText(this, "MAC address scanned!", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(this, "Invalid MAC format", Toast.LENGTH_SHORT).show();
+                }
+            } else {
+                Toast.makeText(this, "Scan cancelled", Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 }

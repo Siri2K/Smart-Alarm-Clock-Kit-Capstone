@@ -51,4 +51,5 @@ dependencies {
     implementation(libs.appcompat.v161)
     implementation(libs.material.v190)
     implementation(libs.constraintlayout.v214)
+    implementation (libs.zxing.android.embedded)
 }
