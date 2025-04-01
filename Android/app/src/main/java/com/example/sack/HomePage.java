@@ -65,13 +65,13 @@ public class HomePage extends AppCompatActivity {
         LineChart sleepChart = findViewById(R.id.sleepChart);
         List<SleepStageEntry> dummySleepStages = Arrays.asList(
                 new SleepStageEntry(0, 22 * 60 + 30),  // 22:30 - Wake
-                new SleepStageEntry(2, 23 * 60 + 0),   // 23:00 - Light
-                new SleepStageEntry(3, 23 * 60 + 30),  // 23:30 - Deep
+                new SleepStageEntry(2, 23 * 60 + 0),   // 23:00 - REM
+                new SleepStageEntry(1, 23 * 60 + 30),  // 23:30 - Deep
                 new SleepStageEntry(1, 0 * 60 + 30),   // 00:30 - REM
-                new SleepStageEntry(2, 1 * 60 + 0),    // 01:00 - Light
-                new SleepStageEntry(3, 2 * 60 + 0),    // 02:00 - Deep
+                new SleepStageEntry(2, 1 * 60 + 0),    // 01:00 - REM
+                new SleepStageEntry(1, 2 * 60 + 0),    // 02:00 - Deep
                 new SleepStageEntry(1, 3 * 60 + 0),    // 03:00 - REM
-                new SleepStageEntry(2, 4 * 60 + 0),    // 04:00 - Light
+                new SleepStageEntry(2, 4 * 60 + 0),    // 04:00 - REM
                 new SleepStageEntry(0, 6 * 60 + 30)    // 06:30 - Wake
         );
         displaySleepStages(dummySleepStages, sleepChart);
@@ -203,9 +203,8 @@ public class HomePage extends AppCompatActivity {
             public String getFormattedValue(float value) {
                 switch ((int) value) {
                     case 0: return "Wake";
-                    case 1: return "Light";
+                    case 1: return "REM";
                     case 2: return "Deep";
-                    case 3: return "REM";
                     default: return "";
                 }
             }
