@@ -1,7 +1,9 @@
 package com.example.sack;
 
 import java.nio.charset.StandardCharsets;
+import java.sql.Date;
 import java.util.Calendar;
+import java.util.Locale;
 import java.util.UUID;
 
 import android.app.Activity;
@@ -16,6 +18,7 @@ import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothManager;
 import android.content.SharedPreferences;
+import android.icu.text.SimpleDateFormat;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
@@ -251,5 +254,24 @@ public class BLEManager {
         }
 
         return false;
+    }
+    public void saveAndSendBedtime(int userId) {
+        long currentTimeMillis = System.currentTimeMillis();
+        long optimalTimeMillis = currentTimeMillis + (10 * 60 * 1000);
+        String optimalBedtime = new SimpleDateFormat("hh:mm a", Locale.getDefault())
+                .format(new Date(optimalTimeMillis));
+
+        dbHelper.insertSleepTime(userId, optimalBedtime);
+
+        SharedPreferences prefs = context.getSharedPreferences("MyPreferences", Context.MODE_PRIVATE);
+        prefs.edit().putString("AVERAGE_BEDTIME", optimalBedtime).apply();
+
+        if (context instanceof HomePage) {
+            ((HomePage) context).runOnUiThread(() ->
+                    ((HomePage) context).updateSleepUI()
+            );
+        }
+
+        Log.d("BLEManager", "Saved bedtime: " + optimalBedtime);
     }
 }

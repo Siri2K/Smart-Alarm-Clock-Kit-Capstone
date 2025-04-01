@@ -3,6 +3,7 @@ package com.example.sack;
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.widget.Button;
@@ -82,6 +83,11 @@ public class ConnectToDevice extends AppCompatActivity {
             @Override
             public boolean onConnected() {
                 updateStatus("Connected to Clock!");
+                SharedPreferences prefs = getSharedPreferences("MyPreferences", MODE_PRIVATE);
+                String username = prefs.getString("LOGGED_IN_USERNAME", null);
+                int userId = new DatabaseHelper(ConnectToDevice.this).getUserIdByUsername(username);
+
+                bleManager.saveAndSendBedtime(userId);
                 return true;
             }
 

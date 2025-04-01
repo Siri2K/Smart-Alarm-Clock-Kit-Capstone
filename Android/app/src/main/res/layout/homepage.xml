@@ -85,7 +85,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:gravity="center"
-            android:text="10:30"
+            android:text="No Data Yet"
             android:textColor="#FF6B6B"
             android:textSize="20sp"
             android:textStyle="bold" />

@@ -82,7 +82,7 @@ public class HomePage extends AppCompatActivity {
 
             if (userId != -1) {
                 displayHeartbeatDataOnGraph(userId);
-                //updateSleepUI();
+                updateSleepUI();
             }
         } else {
             welcomeMessage.setText("Welcome User");
@@ -271,35 +271,8 @@ public class HomePage extends AppCompatActivity {
             displayHeartbeatDataOnGraph(userId);
         });
     }
-    private void saveAndSendBedtime() {
-        if (userId == -1) {
-            Log.e("Bedtime", "User ID not found! Cannot save bedtime.");
-            return;
-        }
 
-        // Get the current time and add 10 minutes
-        long currentTimeMillis = System.currentTimeMillis();
-        long optimalTimeMillis = currentTimeMillis + (10 * 60 * 1000); // Add 10 minutes
-
-        // Format the bedtime as HH:mm
-        SimpleDateFormat timeFormat = new SimpleDateFormat("hh:mm a", Locale.getDefault());
-        String optimalBedtime = timeFormat.format(new Date(optimalTimeMillis));
-
-        // Save bedtime in the database
-        dbHelper.insertSleepTime(userId, optimalBedtime);
-
-        // Retrieve the updated average bedtime
-        String averageBedtime = dbHelper.getAverageBedtime(userId);
-
-        SharedPreferences prefs = getSharedPreferences("MyPreferences", MODE_PRIVATE);
-        SharedPreferences.Editor editor = prefs.edit();
-        editor.putString("AVERAGE_BEDTIME", averageBedtime);
-        editor.apply();
-
-        // Debugging log
-        Log.d("Bedtime", "Optimal bedtime saved: " + optimalBedtime);
-    }
-    private void updateSleepUI() {
+    public void updateSleepUI() {
         SharedPreferences prefs = getSharedPreferences("MyPreferences", MODE_PRIVATE);
         String averageBedtime = prefs.getString("AVERAGE_BEDTIME", "No bedtime recorded");
 
