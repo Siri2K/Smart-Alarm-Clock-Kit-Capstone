@@ -28,6 +28,11 @@ char WifiMacAddress[18] = " ";
 char WifiSku[64] = " ";
 char WifiApiKey[64] = " ";
 
+// Sleep and movement thresholds
+const uint8_t WAKE_HR_THRESHOLD = 70;       // HR above this implies awake
+const uint8_t DEEP_SLEEP_HR_THRESHOLD = 65;   // HR below this with very low movement implies deep sleep
+const float MOVEMENT_THRESHOLD = 50;        // Movement threshold in g
+
 
 static const char *TAG = CLOCK_NAME;
 static esp_ble_adv_params_t advertisingParameters = {
@@ -120,6 +125,16 @@ static int string_to_uuid(const char *uuid_str, uint8_t *uuid) {
     uuid[0] = (uint8_t)(last_part); // Low byte
 
     return 0;
+}
+
+static int8_t checkMAC(esp_bd_addr_t address1, uint8_t* address2){
+    for(int i=0;i<6;i++){
+        ESP_LOGI(TAG, "Address %d vs Address %d", address1[i],address2[i]);
+        if(address1[i] != address2[i]){
+            return 0;
+        }
+    }
+    return 1;
 }
 
 void print_uuids() {
@@ -248,22 +263,15 @@ static void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_
             break;
         }       
         case ESP_GATTS_WRITE_EVT: {
-            /*
-            if(param->write.len == sizeof(storedWatchData)/sizeof(storedWatchData[0])-2){
-                for (int i = 0; i < param->write.len; i++) {
-                    storedWatchData[i] = param->write.value[i];
-                }
-            }
-            */
-
-            if(param->write.conn_id == ((connectedDeviceAddress[0] == WATCH_MAC)?connection_ids[0]:connection_ids[1])){
+            ESP_LOGI(TAG, "CONN IDs : %d = %d or %d", param->write.conn_id, connection_ids[0],connection_ids[1]);
+            if(param->write.conn_id == ((checkMAC(connectedDeviceAddress[0],WATCH_MAC) == 1)?connection_ids[0]:connection_ids[1])){
                 
                 ESP_LOGI(TAG, "Received Watch Data");
                 for (int i = 0; i < param->write.len; i++) {
                     storedWatchData[i] = param->write.value[i];
                 }
             }
-            else if(param->write.conn_id != ((connectedDeviceAddress[0] == WATCH_MAC)?connection_ids[0]:connection_ids[1])){
+            else if(param->write.conn_id != ((checkMAC(connectedDeviceAddress[0],WATCH_MAC)?connection_ids[0]:connection_ids[1]))){
                 ESP_LOGI(TAG, "Received Phone Data");
 
                 // Assuming incoming data is comma-separated: "string1,string2,string3,int"
@@ -325,19 +333,16 @@ static void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_
                 }
             }
             
-            // Example Log the received data
-            /*
-            ESP_LOGI(TAG, "Received from: ");
-            for (int i = 0; i < 6; i++) {
-                ESP_LOGI(TAG, "%02X ", param->write.bda[i]);
+            // Update Sleep State
+            if(storedWatchData[0] >= WAKE_HR_THRESHOLD || storedWatchData[1] > MOVEMENT_THRESHOLD){
+                sleepState = 0;
             }
-            ESP_LOGI(TAG, "Number of Connections: %d",num_conns);
-            ESP_LOGI(TAG, "Received data: ");
-            for (int i = 0; i < param->write.len; i++) {
-                ESP_LOGI(TAG, "%02X ", param->write.value[i]);
+            if(storedWatchData[0] < DEEP_SLEEP_HR_THRESHOLD || storedWatchData[1] < (MOVEMENT_THRESHOLD / 2)){
+                sleepState = 2;
             }
-            ESP_LOGI(TAG, "\n");
-            */
+            else{
+                sleepState = 1;
+            }
             
 
             int8_t sameAddress = 1;

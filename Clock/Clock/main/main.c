@@ -264,11 +264,12 @@ void app_main(void){
 
     // Initialize BLE
     initializeBLE();
+    configureBLE();
     vTaskDelay(1000/portTICK_PERIOD_MS);
     
 
     // Control Task
-    ControlTask();
+    //ControlTask();
 }
 
 void ControlTask(){   
@@ -281,7 +282,7 @@ void ControlTask(){
 
     /* Create All Tasks */
     // Configure Wifi & BLE
-    xTaskCreatePinnedToCore(setupWifi,"Configure Wifi",8192,NULL,6,&startBLEHandle,0);
+    xTaskCreatePinnedToCore(startBLE,"Configure BLE",8192,NULL,6,&startBLEHandle,0);
     xTaskCreate(setupWifi,"Configure Wifi",CONFIG_SYSTEM_EVENT_TASK_STACK_SIZE,NULL,4,&setupWifiHandle);
     xTaskCreatePinnedToCore(startWifi,"Start the Wifi",CONFIG_SYSTEM_EVENT_TASK_STACK_SIZE,NULL,3,&startWifiHandle,1);
     xTaskCreate(controlBulb,"Control the LightBulb",CONFIG_SYSTEM_EVENT_TASK_STACK_SIZE,NULL,1,&controlBulbHandle);

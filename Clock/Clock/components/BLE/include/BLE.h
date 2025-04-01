@@ -13,7 +13,6 @@
 #include <stdio.h>
 #include <string.h>
 
-/* Definition */
 #define CLOCK_NAME "CLOCK-BLE"
 #define WATCH_MAC (uint8_t[6]){0xCC,0xC2,0xCC,0xFC,0x8A,0x09}
 
