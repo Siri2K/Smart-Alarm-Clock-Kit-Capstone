@@ -82,6 +82,9 @@ public class ConnectToDevice extends AppCompatActivity {
             @Override
             public boolean onConnected() {
                 updateStatus("Connected to Clock!");
+                Intent intent = new Intent(ConnectToDevice.this, HomePage.class);
+                intent.putExtra("UPDATE_BEDTIME", true); // Signal HomePage to update bedtime
+                startActivity(intent);
                 return true;
             }
 
